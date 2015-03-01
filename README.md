@@ -2,14 +2,14 @@
 
 A simple dynamic DNS agent written in Python for the CloudFlare API. Handy for home projects or development environments where you want the benefits of CloudFlare (Hosted DNS, Security, Universal SSL, Apps, etc) but don't have a static IP.
 
-### Usage
+#### Usage
 Just edit the "CloudFlare config" section at the top of the script, throw it in Cron as per the below example, job's a good 'un.
 
-Example Cron job (every hour):
+######Example Cron job (every hour):
 ```bash
 0 * * * * /<absolute-path-to-script>/cloudflare-ddns-agent.py
 ```
-Default config:
+######Default config:
 ```python
 ############################ CloudFlare config ################################
 
@@ -28,8 +28,8 @@ names.append('www')
 ############################## End of config ##################################
 ```
 
-### Logs
+#### Logs
 By default, the script will log to syslog.
 
-### Contribute
+#### Contribute
 As always, I welcome any contributions. Just open a Pull Request.
