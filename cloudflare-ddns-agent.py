@@ -12,6 +12,8 @@
 import sys
 import requests
 import json
+import logging
+import logging.handlers
 
 ############################ CloudFlare config ################################
 
@@ -34,28 +36,34 @@ IP_RESOLVER     =       'http://icanhazip.com'
 PROG_NAME       =       'CloudFlare DDNS Agent'
 API_URL         =       'https://www.cloudflare.com/api_json.html'
 
+# Logging config
+ddns_log = logging.getLogger('DdnsLog')
+ddns_log.setLevel(logging.DEBUG)
+handler = logging.handlers.SysLogHandler(address = '/dev/log')
+ddns_log.addHandler(handler)
+
 # Desc: Returns WAN IP of the host
 def getWanIp():
-    print 'Resolving WAN IP...'
+    ddns_log.debug('Resolving WAN IP...')
 
     try:
         response = requests.get(IP_RESOLVER)
         if response.status_code <> 200:
-            print 'Error obtaining WAN IP - 1.'
+            ddns_log.debug('Error obtaining WAN IP - 1.')
             sys.exit(1)
     except:
-        print 'Error obtaining WAN IP - 2.'
+        ddns_log.debug('Error obtaining WAN IP - 2.')
         sys.exit(1)
     
     wanIp = response.text.strip()
     response.close()
 
-    print "WAN IP resolved as: %s." % wanIp
+    ddns_log.debug("WAN IP resolved as: %s." % wanIp)
     return wanIp
 
 # Desc: Get all existing records from CloudFlare
 def getRecords():
-    print 'Obtaining records from CloudFlare API...'
+    ddns_log.debug('Obtaining records from CloudFlare API...')
 
     # Define API payload
     payload = {
@@ -69,34 +77,34 @@ def getRecords():
     try:
         response = requests.get(API_URL, params=payload)
         if response.status_code <> 200:
-            print 'Error obtaining records from CloudFlare API - 1.'
+            ddns_log.debug('Error obtaining records from CloudFlare API - 1.')
             sys.exit(1)
     except:
-        print 'Error obtaining records from CloudFlare API - 2.'
+        ddns_log.debug('Error obtaining records from CloudFlare API - 2.')
         sys.exit(1)
     
     records = response.json()
     response.close()
     
-    print 'Obtained records from CloudFlare API.'
+    ddns_log.debug('obtained records from cloudflare api.')
     return records
 
 # Desc: Get ID of a given record name
 def getRecordId(name):
-    print "Obtaining record ID for: %s" % name
+    ddns_log.debug("Obtaining record ID for: %s" % name)
 
     # For given name return record ID
     for record in records['response']['recs']['objs']:
         if record['display_name'] == name:
-            print "Obtained record ID: %s" % record['rec_id']
+            ddns_log.debug("Obtained record ID: %s" % record['rec_id'])
             return record['rec_id']
         
-    print "Could not obtain record ID for: %s" % name
+    ddns_log.debug("Could not obtain record ID for: %s" % name)
     sys.exit(1)
 
 # Desc: Update given record with new WAN IP
 def updateRecord(name,recordId):
-    print "Updating record '%s' to point at '%s'..." % (name,wanIp)
+    ddns_log.debug("Updating record '%s' to point at '%s'..." % (name,wanIp))
     
     # Define payload
     payload = {
@@ -115,16 +123,17 @@ def updateRecord(name,recordId):
         # Update the record
         response = requests.get(API_URL, params=payload)
         if response.status_code <> 200:
-            print 'Error updating record via CloudFlare API - 1.'
+            ddns_log.debug('Error updating record via CloudFlare API - 1.')
             sys.exit(1)
     except:
-        print 'Error updating record via CloudFlare API - 2.'
+        ddns_log.debug('Error updating record via CloudFlare API - 2.')
         sys.exit(1)
 
-    print "Updated record successfully."
+    ddns_log.debug('Updated record successfully.')
 
 # Execute script
-print "%s started..." % PROG_NAME
+ddns_log.debug("%s started. Logging to syslog..." % PROG_NAME)
+print "%s started. Logging to syslog..." % PROG_NAME
 
 # Get WAN IP and all existing records
 records = getRecords()
@@ -135,6 +144,7 @@ for name in names:
     recordId = getRecordId(name)
     updateRecord(name,recordId)
 
+ddns_log.debug("%s completed." % PROG_NAME)
 print "%s completed." % PROG_NAME
 
 # Exit
