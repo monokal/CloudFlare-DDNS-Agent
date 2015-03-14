@@ -1,15 +1,21 @@
 # CloudFlare DDNS Agent
-
 A simple dynamic DNS agent written in Python for the CloudFlare API. Handy for home projects or development environments where you want the benefits of CloudFlare (Hosted DNS, Security, Universal SSL, Apps, etc) but don't have a static IP.
 
-#### Usage
-Just edit the "CloudFlare config" section at the top of the script, throw it in Cron as per the below example, job's a good 'un.
+#### Installation
 
-######Example Cron job (every hour):
+###### Debian / Ubuntu
+sudo dpkg -i cloudflare-ddns-agent_1.0-1.deb
+
+###### Alternative / Other Distros
+- Drop cloudflare-ddns-agent.py in "/etc/cloudflare-ddns-agent/cloudflare-ddns-agent.py"
+- Drop the following in your crontab (default: run every hour):
 ```bash
 0 * * * * /<absolute-path-to-script>/cloudflare-ddns-agent.py
 ```
-######Default config:
+
+#### Configuration
+Just edit the "CloudFlare config" section at the top of the script (/etc/cloudflare-ddns-agent/cloudflare-ddns-agent.py) as seen below:
+
 ```python
 ############################ CloudFlare config ################################
 
