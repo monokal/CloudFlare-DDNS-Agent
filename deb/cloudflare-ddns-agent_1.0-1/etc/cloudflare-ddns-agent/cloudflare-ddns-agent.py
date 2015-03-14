@@ -17,24 +17,28 @@ import logging.handlers
 
 ############################ CloudFlare config ################################
 
-# API credentials
-EMAIL           =       'YOUR-NAME@YOUR-DOMAIN.TLD'
-API_KEY         =       'YOUR-API-KEY'
+# The Email address used to login to CloudFlare.
+EMAIL   = 'YOUR-NAME@YOUR-DOMAIN.TLD'
 
-# Zone name
-ZONE            =       'YOUR-ZONE.TLD'
+# Your CloudFlare API key which can be found at https://www.cloudflare.com/my-account.html
+API_KEY = 'YOUR-API-KEY'
 
-# Names of A records to update, add more lines as required
+# The Zone (website) name to update.
+ZONE    = 'YOUR-ZONE.TLD'
+
+# Names of A records to update.
 names = []
 names.append(ZONE) # Root domain
 names.append('www')
+#names.append('<Another A record>')
 
 ############################## End of config ##################################
 
 # Other globals
-IP_RESOLVER     =       'http://icanhazip.com'
-PROG_NAME       =       'CloudFlare DDNS Agent'
-API_URL         =       'https://www.cloudflare.com/api_json.html'
+IP_RESOLVER = 'http://icanhazip.com'
+PROG_NAME   = 'CloudFlare DDNS Agent'
+API_URL     = 'https://www.cloudflare.com/api_json.html'
+IP_LOG      = '/tmp/cf_ddns_iplog.txt'
 
 # Logging config
 ddns_log = logging.getLogger('DdnsLog')
@@ -131,21 +135,40 @@ def updateRecord(name,recordId):
 
     ddns_log.debug('Updated record successfully.')
 
-# Execute script
-ddns_log.debug("%s started. Logging to syslog..." % PROG_NAME)
-print "%s started. Logging to syslog..." % PROG_NAME
+def checkIpLog():
+    try:
+        # Open log or create if doesn't exist
+        file = open(IP_LOG, 'a+')
+        try:
+            ddns_log.debug('Found IP log. Persing data...')
+            file.seek(0)
+            ipLog = json.load(file)
+            ddns_log.debug('Parsed IP log.')
+        except ValueError:
+            ddns_log.debug('Could not parse IP log.')
+            ipLog = {}
+        file.close()
+    except IOError:
+        ddns_log.debug('Could not access IP log. Exiting.')
+        sys.exit(1)
 
-# Get WAN IP and all existing records
+# Execute script
+ddns_log.debug("%s started..." % PROG_NAME)
+
+# Get WAN IP
+wanIp = getWanIp()
+
+# Check if IP has changed since last run
+#checkIpLog()
+
+# Get all records from CloudFlare
 records = getRecords()
-wanIp   = getWanIp()
 
 # For each name update the record
 for name in names:
     recordId = getRecordId(name)
     updateRecord(name,recordId)
 
-ddns_log.debug("%s completed." % PROG_NAME)
-print "%s completed." % PROG_NAME
-
 # Exit
+ddns_log.debug("%s completed." % PROG_NAME)
 sys.exit(0)
