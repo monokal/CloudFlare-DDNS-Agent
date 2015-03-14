@@ -4,8 +4,6 @@
 # Name:          CloudFlare DDNS Agent
 # Author:        Daniel Middleton <me@daniel-middleton.com>
 # Description:   Dynamic DNS agent for the CloudFlare API
-# Prerequisites: Python (tested 2.7.6)
-# Usage:         Cron: "0 * * * * /path-to-script/cloudflare-ddns-agent.py"
 ###############################################################################
 
 # Imports
