@@ -12,7 +12,7 @@ sudo dpkg -i cloudflare-ddns-agent_1.0-1.deb
 - Drop "/etc/cloudflare-ddns-agent/cloudflare-ddns-agent.py" in place.
 - Drop in a crontab. Example below runs every hour:
 ```bash
-0 * * * * /<absolute-path-to-script>/cloudflare-ddns-agent.py
+0 * * * * /etc/cloudflare-ddns-agent/cloudflare-ddns-agent.py
 ```
 
 ## Configuration
