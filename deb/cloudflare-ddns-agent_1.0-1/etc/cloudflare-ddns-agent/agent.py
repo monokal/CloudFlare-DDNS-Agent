@@ -26,18 +26,16 @@ names.append('www')
 ############################ No need to edit below ############################
 
 # Global imports
-import (
-    sys,
-    requests,
-    json,
-    logging,
-    logging.handlers
-)
+import sys
+import requests
+import json
+import logging
 
 # Other globals
 
-# There's an potential vulnerability here should the below resolver service be
-# compromised. You can change this to point at a self-hosted service if necessary.
+# There's clearly a potential vulnerability here should the below resolver service be
+# compromised. You can change this to point at a self-hosted service if necessary or
+# I'll host a secure public resolver for this purpose if requested.
 IP_RESOLVER = 'http://icanhazip.com'
 
 API_URL     = 'https://www.cloudflare.com/api_json.html'
@@ -45,70 +43,75 @@ IP_LOG      = '/tmp/cf_ddns_iplog.txt'
 PROG_NAME   = 'CloudFlare DDNS Agent'
 
 # Logging config
-ddns_log = logging.getLogger('DdnsLog')
-ddns_log.setLevel(logging.DEBUG)
-handler = logging.handlers.SysLogHandler(address = '/dev/log')
-ddns_log.addHandler(handler)
+logging.basicConfig(
+    format=PROG_NAME+' : %(levelname)s : %(message)s',
+    filename='/var/log/cloudflare-ddns-agent.log',
+    level=logging.INFO
+)
 
-# Desc: Check the HTTP response code of an API call
-# TODO: If CloudFlare call, actually check response body and throw approprite error as per below:
+# Desc: Check a generic HTTP response code
+def checkHttpResponse(responseCode):
+    if responseCode == 200:
+        logging.info('200 - OK')
+    elif responseCode == 400:
+        logging.error('400 - Bad Request. Exiting.')
+        sys.exit(1)
+    elif responseCode == 401:
+        logging.error('401 - Unauthorised. Exiting.')
+        sys.exit(1)
+    elif responseCode == 403:
+        logging.error('403 - Forbidden. Exiting.')
+        sys.exit(1)
+    elif responseCode == 404:
+        logging.error('404 - Not Found. Exiting.')
+        sys.exit(1)
+    elif responseCode == 410:
+        logging.error('410 - Gone. Exiting.')
+        sys.exit(1)
+    elif responseCode == 500:
+        logging.error('500 - Internal Server Error. Exiting.')
+        sys.exit(1)
+    elif responseCode == 501:
+        logging.error('501 - Not Implemented. Exiting.')
+        sys.exit(1)
+    elif responseCode == 503:
+        logging.error('503 - Service Unavailable. Exiting.')
+        sys.exit(1)
+    elif responseCode == 550:
+        logging.error('550 - Permission Denied. Exiting.')
+        sys.exit(1)
+    else:
+        logging.error('Unrecognised HTTP response code returned. Exiting.')
+        sys.exit(1)
+
+# Desc: Check the CloudFlare API HTTP response code
+def checkApiResponse(responseCode):
+    checkHttpResponse(responseCode)
+#   TODO: If CloudFlare call, actually check response body and throw approprite error as per below:
 #       "E_UNAUTH" -- Authentication could not be completed
 #       "E_INVLDINPUT" -- Some other input was not valid
 #       "E_MAXAPI" -- You have exceeded your allowed number of API calls.
-def checkHttpResponse(responseCode):
-    if responseCode == 200:
-        ddns_log.debug('200 - OK')
-    elif responseCode == 400:
-        ddns_log.debug('400 - Bad Request. Exiting.')
-        sys.exit(1)
-    elif responseCode == 401:
-        ddns_log.debug('401 - Unauthorised. Exiting.')
-        sys.exit(1)
-    elif responseCode == 403:
-        ddns_log.debug('403 - Forbidden. Exiting.')
-        sys.exit(1)
-    elif responseCode == 404:
-        ddns_log.debug('404 - Not Found. Exiting.')
-        sys.exit(1)
-    elif responseCode == 410:
-        ddns_log.debug('410 - Gone. Exiting.')
-        sys.exit(1)
-    elif responseCode == 500:
-        ddns_log.debug('500 - Internal Server Error. Exiting.')
-        sys.exit(1)
-    elif responseCode == 501:
-        ddns_log.debug('501 - Not Implemented. Exiting.')
-        sys.exit(1)
-    elif responseCode == 503:
-        ddns_log.debug('503 - Service Unavailable. Exiting.')
-        sys.exit(1)
-    elif responseCode == 550:
-        ddns_log.debug('550 - Permission Denied. Exiting.')
-        sys.exit(1)
-    else
-        ddns_log.debug('Unrecognised HTTP response code returned. Exiting.')
-        sys.exit(1)
 
 # Desc: Returns WAN IP of the host
 def getWanIp():
-    ddns_log.debug('Resolving WAN IP...')
+    logging.info('Resolving WAN IP...')
 
     try:
         response = requests.get(IP_RESOLVER)
         checkHttpResponse(response.status_code)
     except:
-        ddns_log.debug('Error obtaining WAN IP.')
+        logging.error('Error obtaining WAN IP.')
         sys.exit(1)
     
     wanIp = response.text.strip()
     response.close()
 
-    ddns_log.debug("WAN IP resolved as: %s." % wanIp)
+    logging.info("WAN IP resolved as: %s." % wanIp)
     return wanIp
 
 # Desc: Get all existing records from CloudFlare
 def getRecords():
-    ddns_log.debug('Obtaining records from CloudFlare API...')
+    logging.info('Obtaining records from CloudFlare API...')
 
     # Define API payload
     payload = {
@@ -121,33 +124,33 @@ def getRecords():
     # Get all records via API and parse to JSON
     try:
         response = requests.get(API_URL, params=payload)
-        checkHttpResponse(response.status_code)
+        checkApiResponse(response.status_code)
     except:
-        ddns_log.debug('Error obtaining records from CloudFlare API.')
+        logging.error('Error obtaining records from CloudFlare API.')
         sys.exit(1)
     
     records = response.json()
     response.close()
     
-    ddns_log.debug('obtained records from cloudflare api.')
+    logging.info('obtained records from cloudflare api.')
     return records
 
 # Desc: Get ID of a given record name
 def getRecordId(name):
-    ddns_log.debug("Obtaining record ID for: %s" % name)
+    logging.info("Obtaining record ID for: %s" % name)
 
     # For given name return record ID
     for record in records['response']['recs']['objs']:
         if record['display_name'] == name:
-            ddns_log.debug("Obtained record ID: %s" % record['rec_id'])
+            logging.info("Obtained record ID: %s" % record['rec_id'])
             return record['rec_id']
         
-    ddns_log.debug("Could not obtain record ID for: %s" % name)
+    logging.error("Could not obtain record ID for: %s" % name)
     sys.exit(1)
 
 # Desc: Update given record with new WAN IP
 def updateRecord(name,recordId):
-    ddns_log.debug("Updating record '%s' to point at '%s'..." % (name,wanIp))
+    logging.info("Updating record '%s' to point at '%s'..." % (name,wanIp))
     
     # Define payload
     payload = {
@@ -165,32 +168,32 @@ def updateRecord(name,recordId):
     try:
         # Update the record
         response = requests.get(API_URL, params=payload)
-        checkHttpResponse(response.status_code)
+        checkApiResponse(response.status_code)
     except:
-        ddns_log.debug('Error updating record via CloudFlare API.')
+        logging.error('Error updating record via CloudFlare API.')
         sys.exit(1)
 
-    ddns_log.debug('Updated record successfully.')
+    logging.info('Updated record successfully.')
 
 def checkIpLog():
     try:
         # Open log or create if doesn't exist
         file = open(IP_LOG, 'a+')
         try:
-            ddns_log.debug('Found IP log. Persing data...')
+            logging.info('Found IP log. Persing data...')
             file.seek(0)
             ipLog = json.load(file)
-            ddns_log.debug('Parsed IP log.')
+            logging.info('Parsed IP log.')
         except ValueError:
-            ddns_log.debug('Could not parse IP log.')
+            logging.error('Could not parse IP log.')
             ipLog = {}
         file.close()
     except IOError:
-        ddns_log.debug('Could not access IP log. Exiting.')
+        logging.error('Could not access IP log. Exiting.')
         sys.exit(1)
 
 # Execute script
-ddns_log.debug("%s started..." % PROG_NAME)
+logging.info("%s started..." % PROG_NAME)
 
 # Get WAN IP
 wanIp = getWanIp()
@@ -207,5 +210,5 @@ for name in names:
     updateRecord(name,recordId)
 
 # Exit
-ddns_log.debug("%s completed." % PROG_NAME)
+logging.info("%s completed." % PROG_NAME)
 sys.exit(0)

@@ -1,7 +1,7 @@
 #!/bin/bash
 echo "[postinst] Creating new crontab at '/etc/cron.d/cloudflare-ddns-agent'..."
 
-echo "0 * * * * root /etc/cloudflare-ddns-agent/cloudflare-ddns-agent.py" > /etc/cron.d/cloudflare-ddns-agent
+echo "0 * * * * root /etc/cloudflare-ddns-agent/agent.py" > /etc/cron.d/cloudflare-ddns-agent
 if [ "$?" -ne "0" ]; then
     echo "[postinst] Could not create '/etc/cron.d/cloudflare-ddns-agent'. Exiting."
     exit 1
