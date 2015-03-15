@@ -7,13 +7,17 @@
 ###############################################################################
 
 # Imports
-import sys
-import requests
-import json
-import logging
-import logging.handlers
+import (
+    sys,
+    requests,
+    json,
+    logging,
+    logging.handlers
+)
 
-############################ CloudFlare config ################################
+###############################################################################
+################################### CONFIG ####################################
+# TODO: Break config out in to its own file
 
 # The Email address used to login to CloudFlare.
 EMAIL   = 'YOUR-NAME@YOUR-DOMAIN.TLD'
@@ -30,13 +34,18 @@ names.append(ZONE) # Root domain
 names.append('www')
 #names.append('<Another A record>')
 
-############################## End of config ##################################
+############################ No need to edit below ############################
+###############################################################################
 
 # Other globals
+
+# There's an potential vulnerability here should the below resolver service be
+# compromised. You can change this to point at a self-hosted service if necessary.
 IP_RESOLVER = 'http://icanhazip.com'
-PROG_NAME   = 'CloudFlare DDNS Agent'
+
 API_URL     = 'https://www.cloudflare.com/api_json.html'
 IP_LOG      = '/tmp/cf_ddns_iplog.txt'
+PROG_NAME   = 'CloudFlare DDNS Agent'
 
 # Logging config
 ddns_log = logging.getLogger('DdnsLog')
@@ -50,11 +59,9 @@ def getWanIp():
 
     try:
         response = requests.get(IP_RESOLVER)
-        if response.status_code <> 200:
-            ddns_log.debug('Error obtaining WAN IP - 1.')
-            sys.exit(1)
+        checkApiResponse(response.status_code)
     except:
-        ddns_log.debug('Error obtaining WAN IP - 2.')
+        ddns_log.debug('Error obtaining WAN IP.')
         sys.exit(1)
     
     wanIp = response.text.strip()
@@ -78,11 +85,9 @@ def getRecords():
     # Get all records via API and parse to JSON
     try:
         response = requests.get(API_URL, params=payload)
-        if response.status_code <> 200:
-            ddns_log.debug('Error obtaining records from CloudFlare API - 1.')
-            sys.exit(1)
+        checkApiResponse(response.status_code)
     except:
-        ddns_log.debug('Error obtaining records from CloudFlare API - 2.')
+        ddns_log.debug('Error obtaining records from CloudFlare API.')
         sys.exit(1)
     
     records = response.json()
@@ -90,6 +95,16 @@ def getRecords():
     
     ddns_log.debug('obtained records from cloudflare api.')
     return records
+
+# Desc: Check the HTTP response code of an API call
+# TODO: Actually check response body and throw approprite error as per below:
+#       "E_UNAUTH" -- Authentication could not be completed
+#       "E_INVLDINPUT" -- Some other input was not valid
+#       "E_MAXAPI" -- You have exceeded your allowed number of API calls.
+def checkApiResponse(responseCode):
+    if responseCode <> 200:
+        ddns_log.debug('Error calling CloudFlare API.')
+        sys.exit(1)
 
 # Desc: Get ID of a given record name
 def getRecordId(name):
@@ -124,11 +139,9 @@ def updateRecord(name,recordId):
     try:
         # Update the record
         response = requests.get(API_URL, params=payload)
-        if response.status_code <> 200:
-            ddns_log.debug('Error updating record via CloudFlare API - 1.')
-            sys.exit(1)
+        checkApiResponse(response.status_code)
     except:
-        ddns_log.debug('Error updating record via CloudFlare API - 2.')
+        ddns_log.debug('Error updating record via CloudFlare API.')
         sys.exit(1)
 
     ddns_log.debug('Updated record successfully.')
