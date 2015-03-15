@@ -6,6 +6,7 @@
 
 ################################### CONFIG ####################################
 # TODO: Break config out in to its own file
+# TODO: Add support for other record types
 
 # The Email address used to login to CloudFlare
 EMAIL   = 'YOUR-NAME@YOUR-DOMAIN.TLD'
@@ -34,6 +35,7 @@ import (
 )
 
 # Other globals
+
 # There's an potential vulnerability here should the below resolver service be
 # compromised. You can change this to point at a self-hosted service if necessary.
 IP_RESOLVER = 'http://icanhazip.com'
@@ -54,8 +56,37 @@ ddns_log.addHandler(handler)
 #       "E_INVLDINPUT" -- Some other input was not valid
 #       "E_MAXAPI" -- You have exceeded your allowed number of API calls.
 def checkHttpResponse(responseCode):
-    if responseCode <> 200:
-        ddns_log.debug('Non-200 HTTP response code returned.')
+    if responseCode == 200:
+        ddns_log.debug('200 - OK')
+    elif responseCode == 400:
+        ddns_log.debug('400 - Bad Request. Exiting.')
+        sys.exit(1)
+    elif responseCode == 401:
+        ddns_log.debug('401 - Unauthorised. Exiting.')
+        sys.exit(1)
+    elif responseCode == 403:
+        ddns_log.debug('403 - Forbidden. Exiting.')
+        sys.exit(1)
+    elif responseCode == 404:
+        ddns_log.debug('404 - Not Found. Exiting.')
+        sys.exit(1)
+    elif responseCode == 410:
+        ddns_log.debug('410 - Gone. Exiting.')
+        sys.exit(1)
+    elif responseCode == 500:
+        ddns_log.debug('500 - Internal Server Error. Exiting.')
+        sys.exit(1)
+    elif responseCode == 501:
+        ddns_log.debug('501 - Not Implemented. Exiting.')
+        sys.exit(1)
+    elif responseCode == 503:
+        ddns_log.debug('503 - Service Unavailable. Exiting.')
+        sys.exit(1)
+    elif responseCode == 550:
+        ddns_log.debug('550 - Permission Denied. Exiting.')
+        sys.exit(1)
+    else
+        ddns_log.debug('Unrecognised HTTP response code returned. Exiting.')
         sys.exit(1)
 
 # Desc: Returns WAN IP of the host
