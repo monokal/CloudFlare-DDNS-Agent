@@ -1,12 +1,30 @@
 #!/usr/bin/env python
 
-###############################################################################
 # Name:          CloudFlare DDNS Agent
 # Author:        Daniel Middleton <me@daniel-middleton.com>
 # Description:   Dynamic DNS agent for the CloudFlare API
-###############################################################################
 
-# Imports
+################################### CONFIG ####################################
+# TODO: Break config out in to its own file
+
+# The Email address used to login to CloudFlare
+EMAIL   = 'YOUR-NAME@YOUR-DOMAIN.TLD'
+
+# Your CloudFlare API key which can be found at https://www.cloudflare.com/my-account.html
+API_KEY = 'YOUR-API-KEY'
+
+# The Zone (website) name to update
+ZONE    = 'YOUR-ZONE.TLD'
+
+# Names of A records to update
+names = []
+names.append(ZONE)
+names.append('www')
+#names.append('<Another A record>')
+
+############################ No need to edit below ############################
+
+# Global imports
 import (
     sys,
     requests,
@@ -15,30 +33,7 @@ import (
     logging.handlers
 )
 
-###############################################################################
-################################### CONFIG ####################################
-# TODO: Break config out in to its own file
-
-# The Email address used to login to CloudFlare.
-EMAIL   = 'YOUR-NAME@YOUR-DOMAIN.TLD'
-
-# Your CloudFlare API key which can be found at https://www.cloudflare.com/my-account.html
-API_KEY = 'YOUR-API-KEY'
-
-# The Zone (website) name to update.
-ZONE    = 'YOUR-ZONE.TLD'
-
-# Names of A records to update.
-names = []
-names.append(ZONE) # Root domain
-names.append('www')
-#names.append('<Another A record>')
-
-############################ No need to edit below ############################
-###############################################################################
-
 # Other globals
-
 # There's an potential vulnerability here should the below resolver service be
 # compromised. You can change this to point at a self-hosted service if necessary.
 IP_RESOLVER = 'http://icanhazip.com'
@@ -53,13 +48,23 @@ ddns_log.setLevel(logging.DEBUG)
 handler = logging.handlers.SysLogHandler(address = '/dev/log')
 ddns_log.addHandler(handler)
 
+# Desc: Check the HTTP response code of an API call
+# TODO: If CloudFlare call, actually check response body and throw approprite error as per below:
+#       "E_UNAUTH" -- Authentication could not be completed
+#       "E_INVLDINPUT" -- Some other input was not valid
+#       "E_MAXAPI" -- You have exceeded your allowed number of API calls.
+def checkHttpResponse(responseCode):
+    if responseCode <> 200:
+        ddns_log.debug('Non-200 HTTP response code returned.')
+        sys.exit(1)
+
 # Desc: Returns WAN IP of the host
 def getWanIp():
     ddns_log.debug('Resolving WAN IP...')
 
     try:
         response = requests.get(IP_RESOLVER)
-        checkApiResponse(response.status_code)
+        checkHttpResponse(response.status_code)
     except:
         ddns_log.debug('Error obtaining WAN IP.')
         sys.exit(1)
@@ -85,7 +90,7 @@ def getRecords():
     # Get all records via API and parse to JSON
     try:
         response = requests.get(API_URL, params=payload)
-        checkApiResponse(response.status_code)
+        checkHttpResponse(response.status_code)
     except:
         ddns_log.debug('Error obtaining records from CloudFlare API.')
         sys.exit(1)
@@ -95,16 +100,6 @@ def getRecords():
     
     ddns_log.debug('obtained records from cloudflare api.')
     return records
-
-# Desc: Check the HTTP response code of an API call
-# TODO: Actually check response body and throw approprite error as per below:
-#       "E_UNAUTH" -- Authentication could not be completed
-#       "E_INVLDINPUT" -- Some other input was not valid
-#       "E_MAXAPI" -- You have exceeded your allowed number of API calls.
-def checkApiResponse(responseCode):
-    if responseCode <> 200:
-        ddns_log.debug('Error calling CloudFlare API.')
-        sys.exit(1)
 
 # Desc: Get ID of a given record name
 def getRecordId(name):
@@ -139,7 +134,7 @@ def updateRecord(name,recordId):
     try:
         # Update the record
         response = requests.get(API_URL, params=payload)
-        checkApiResponse(response.status_code)
+        checkHttpResponse(response.status_code)
     except:
         ddns_log.debug('Error updating record via CloudFlare API.')
         sys.exit(1)
