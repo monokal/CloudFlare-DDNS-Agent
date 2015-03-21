@@ -5,16 +5,16 @@
 # Description:   Dynamic DNS agent for the CloudFlare API
 
 ################################### CONFIG ####################################
-# TODO: Break config out in to its own file
-# TODO: Add support for other record types
+# TODO: Break config out in to its own file.
+# TODO: Add support for other record types.
 
-# The Email address used to login to CloudFlare
+# The Email address used to login to CloudFlare.
 EMAIL   = 'YOUR-NAME@YOUR-DOMAIN.TLD'
 
 # Your CloudFlare API key which can be found at https://www.cloudflare.com/my-account.html
 API_KEY = 'YOUR-API-KEY'
 
-# The Zone (website) name to update
+# The Zone (website) name to update.
 ZONE    = 'YOUR-ZONE.TLD'
 
 # Names of A records to update
@@ -22,14 +22,6 @@ names = []
 names.append(ZONE)
 names.append('www')
 #names.append('<Another A record>')
-
-############################ No need to edit below ############################
-
-# Global imports
-import sys
-import requests
-import json
-import logging
 
 # Other globals
 
@@ -40,80 +32,135 @@ IP_RESOLVER = 'http://icanhazip.com'
 
 API_URL     = 'https://www.cloudflare.com/api_json.html'
 IP_LOG      = '/tmp/cf_ddns_iplog.txt'
-PROG_NAME   = 'CloudFlare DDNS Agent'
 
-# Logging config
+############################ No need to edit below ############################
+
+# Global imports.
+import sys
+import requests
+import json
+import logging
+import socket
+
+# Global vars.
+PROG_NAME = 'CloudFlare DDNS Agent'
+
+# Logging config.
 logging.basicConfig(
     format=PROG_NAME+' : %(levelname)s : %(message)s',
     filename='/var/log/cloudflare-ddns-agent.log',
     level=logging.INFO
 )
 
-# Desc: Check a generic HTTP response code
-def checkHttpResponse(responseCode):
-    if responseCode == 200:
-        logging.info('200 - OK')
-    elif responseCode == 400:
-        logging.error('400 - Bad Request. Exiting.')
-        sys.exit(1)
-    elif responseCode == 401:
-        logging.error('401 - Unauthorised. Exiting.')
-        sys.exit(1)
-    elif responseCode == 403:
-        logging.error('403 - Forbidden. Exiting.')
-        sys.exit(1)
-    elif responseCode == 404:
-        logging.error('404 - Not Found. Exiting.')
-        sys.exit(1)
-    elif responseCode == 410:
-        logging.error('410 - Gone. Exiting.')
-        sys.exit(1)
-    elif responseCode == 500:
-        logging.error('500 - Internal Server Error. Exiting.')
-        sys.exit(1)
-    elif responseCode == 501:
-        logging.error('501 - Not Implemented. Exiting.')
-        sys.exit(1)
-    elif responseCode == 503:
-        logging.error('503 - Service Unavailable. Exiting.')
-        sys.exit(1)
-    elif responseCode == 550:
-        logging.error('550 - Permission Denied. Exiting.')
-        sys.exit(1)
-    else:
-        logging.error('Unrecognised HTTP response code returned. Exiting.')
+# Description: Check a generic HTTP status code.
+def checkHttpResponse(code):
+    try:
+        # If HTTP status is OK then return immediately.
+        if code == 200:
+            logging.info('200 - OK.')
+            return
+        # Otherwise, log appropriate error and exit.
+        elif code == 400:
+            logging.error('400 - Bad Request. Exiting.')
+        elif code == 401:
+            logging.error('401 - Unauthorised. Exiting.')
+        elif code == 403:
+            logging.error('403 - Forbidden. Exiting.')
+        elif code == 404:
+            logging.error('404 - Not Found. Exiting.')
+        elif code == 410:
+            logging.error('410 - Gone. Exiting.')
+        elif code == 500:
+            logging.error('500 - Internal Server Error. Exiting.')
+        elif code == 501:
+            logging.error('501 - Not Implemented. Exiting.')
+        elif code == 503:
+            logging.error('503 - Service Unavailable. Exiting.')
+        elif code == 550:
+            logging.error('550 - Permission Denied. Exiting.')
+        else:
+            logging.error("%i - Unrecognised HTTP return code. Exiting." % code)
+
+    except:
+            logging.error('Error parsing HTTP return code. Exiting.')
+        
+    sys.exit(1)
+
+# Description: Check a CloudFlare API HTTP response.
+def checkApiResponse(response):
+    # If HTTP status code isn't OK, log error and exit immediately.
+    checkHttpResponse(response.status_code)
+
+    # Otherwise, parse response body to JSON.
+    try:
+        responseJson = json.load(response.text)
+
+    except:
+        logging.error('Error parsing HTTP response body to JSON. Exiting.')
         sys.exit(1)
 
-# Desc: Check the CloudFlare API HTTP response code
-def checkApiResponse(responseCode):
-    checkHttpResponse(responseCode)
-#   TODO: If CloudFlare call, actually check response body and throw approprite error as per below:
-#       "E_UNAUTH" -- Authentication could not be completed
-#       "E_INVLDINPUT" -- Some other input was not valid
-#       "E_MAXAPI" -- You have exceeded your allowed number of API calls.
+    try:
+        # If result is success, return immediately.
+        if responseJson["result"] == 'success':
+            logging.info('Result: Success.')
+            return
+        # Otherwise, log appropriate error and exit.
+        elif responseJson["result"] == 'E_UNAUTH':
+            logging.info('Result: E_UNAUTH - Authentication could not be completed. Exiting.')
+        
+        elif responseJson["result"] == 'E_INVLDINPUT':
+            logging.info('Result: E_INVLDINPUT - Some other input was not valid. Exiting.')
+        
+        elif responseJson["result"] == 'E_MAXAPI':
+            logging.info('Result: E_MAXAPI - You have exceeded your allowed number of API calls. Exiting.')
+        
+        else:
+            logging.info("Result: %s - Unrecognised API response body. Exiting." % responseJson["result"])
 
-# Desc: Returns WAN IP of the host
+    except:
+        logging.error('Error analysing the JSON response body. Exiting.')
+
+    sys.exit(1)
+
+# Description: Returns WAN IP of the host.
 def getWanIp():
     logging.info('Resolving WAN IP...')
 
     try:
+        # Attempt GET request to resolver.
         response = requests.get(IP_RESOLVER)
+
+        # If HTTP status code isn't OK, log error and exit immediately.
         checkHttpResponse(response.status_code)
     except:
-        logging.error('Error obtaining WAN IP.')
+        logging.error("Error obtaining WAN IP from '%s'." % IP_RESOLVER)
         sys.exit(1)
+
+    try:
+        # Otherwise, try to extract the IP.
+        wanIp = response.text.strip()
+        response.close()
+        
+        # Throw an exception if the IP is invalid.
+        socket.inet_aton(wanIp)
+
+        # If we've made it this far we can happily return our WAN IP.
+        logging.info("WAN IP resolved as: %s" % wanIp)
+        return wanIp
+
+    except socket.error:
+        logging.error("Invalid WAN IP obtained from '%s'." % IP_RESOLVER)
     
-    wanIp = response.text.strip()
-    response.close()
+    except:
+        logging.error("Error validating WAN IP from '%s'." % IP_RESOLVER)
+    
+    sys.exit(1)
 
-    logging.info("WAN IP resolved as: %s." % wanIp)
-    return wanIp
-
-# Desc: Get all existing records from CloudFlare
+# Description: Get all of our existing DNS records from CloudFlare API.
 def getRecords():
-    logging.info('Obtaining records from CloudFlare API...')
+    logging.info('Obtaining existing DNS records from CloudFlare API...')
 
-    # Define API payload
+    # Construct payload.
     payload = {
         'a'     : 'rec_load_all',
         'tkn'   : API_KEY,
@@ -121,18 +168,21 @@ def getRecords():
         'z'     : ZONE, 
     }
 
-    # Get all records via API and parse to JSON
     try:
+        # Perform the GET request.
         response = requests.get(API_URL, params=payload)
-        checkApiResponse(response.status_code)
+        
+        # If API response isn't good, log error and exit immediately.
+        checkApiResponse(response)
+    
     except:
-        logging.error('Error obtaining records from CloudFlare API.')
+        logging.error('Error obtaining DNS records from CloudFlare API.')
         sys.exit(1)
     
-    records = response.json()
+    recordsJson = json.load(response.text)
     response.close()
     
-    logging.info('obtained records from cloudflare api.')
+    logging.info("Obtained %i DNS records from CloudFlare API." % recordsJson["response"]["recs"]["count"])
     return records
 
 # Desc: Get ID of a given record name
@@ -180,7 +230,7 @@ def checkIpLog():
         # Open log or create if doesn't exist
         file = open(IP_LOG, 'a+')
         try:
-            logging.info('Found IP log. Persing data...')
+            logging.info('Found IP log. Parsing data...')
             file.seek(0)
             ipLog = json.load(file)
             logging.info('Parsed IP log.')
@@ -199,7 +249,7 @@ logging.info("%s started..." % PROG_NAME)
 wanIp = getWanIp()
 
 # Check if IP has changed since last run
-#checkIpLog()
+checkIpLog()
 
 # Get all records from CloudFlare
 records = getRecords()
