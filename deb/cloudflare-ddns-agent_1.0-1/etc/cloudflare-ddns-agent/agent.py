@@ -104,6 +104,7 @@ def checkApiResponse(response):
         if responseJson["result"] == 'success':
             logging.info('Result: Success.')
             return
+
         # Otherwise, log appropriate error and exit.
         elif responseJson["result"] == 'E_UNAUTH':
             logging.info('Result: E_UNAUTH - Authentication could not be completed. Exiting.')
@@ -115,7 +116,7 @@ def checkApiResponse(response):
             logging.info('Result: E_MAXAPI - You have exceeded your allowed number of API calls. Exiting.')
         
         else:
-            logging.info("Result: %s - Unrecognised API response body. Exiting." % responseJson["result"])
+            logging.info("Result: %s - Unrecognised API result. Exiting." % responseJson["result"])
 
     except:
         logging.error('Error analysing the JSON response body. Exiting.')
@@ -132,6 +133,7 @@ def getWanIp():
 
         # If HTTP status code isn't OK, log error and exit immediately.
         checkHttpResponse(response.status_code)
+
     except:
         logging.error("Error obtaining WAN IP from '%s'." % IP_RESOLVER)
         sys.exit(1)
@@ -179,30 +181,44 @@ def getRecords():
         logging.error('Error obtaining DNS records from CloudFlare API.')
         sys.exit(1)
     
-    recordsJson = json.load(response.text)
-    response.close()
+    try:
+        recordsJson = json.load(response.text)
+        response.close()
     
-    logging.info("Obtained %i DNS records from CloudFlare API." % recordsJson["response"]["recs"]["count"])
-    return records
+        logging.info("Obtained %i DNS records from CloudFlare API." % recordsJson["response"]["recs"]["count"])
+        return records
 
-# Desc: Get ID of a given record name
-def getRecordId(name):
-    logging.info("Obtaining record ID for: %s" % name)
-
-    # For given name return record ID
-    for record in records['response']['recs']['objs']:
-        if record['display_name'] == name:
-            logging.info("Obtained record ID: %s" % record['rec_id'])
-            return record['rec_id']
-        
-    logging.error("Could not obtain record ID for: %s" % name)
+    except:
+        logging.error('Error parsing records to JSON. Exiting.')
+        sys.exit(1)
+    
     sys.exit(1)
 
-# Desc: Update given record with new WAN IP
-def updateRecord(name,recordId):
-    logging.info("Updating record '%s' to point at '%s'..." % (name,wanIp))
+# Description: Return ID of a given record name.
+def getRecordId(name):
+    logging.info("Searching for record ID of: %s" % name)
+
+    try:
+        # Search records for the required name.
+        for record in records['response']['recs']['objs']:
+            # When found, return its ID.
+            if record['display_name'] == name:
+                logging.info("Obtained record ID: %s" % record['rec_id'])
+                return record['rec_id']
+                
+        # If we're here, we couldn't find the record name.
+        logging.error("Could not find a record matching: %s" % name)
     
-    # Define payload
+    except:
+        logging.error('Error while searching for record. Exiting.')
+
+    sys.exit(1)
+
+# Description: Update a given record with new WAN IP.
+def updateRecord(name, recordId):
+    logging.info("Updating '%s' to point at '%s'..." % (name, wanIp))
+    
+    # Construct payload.
     payload = {
         'a'            : 'rec_edit',
         'tkn'          : API_KEY,
@@ -215,15 +231,22 @@ def updateRecord(name,recordId):
         'ttl'          : 1,
         'service_mode' : 1,
     }
+
     try:
-        # Update the record
+        # Try to update the record.
         response = requests.get(API_URL, params=payload)
-        checkApiResponse(response.status_code)
+        
+        # If API response isn't good, log error and exit immediately.
+        checkApiResponse(response)
+    
+        # Otherwise, log success and return.
+        logging.info('Record updated successfully.')
+        return
+
     except:
         logging.error('Error updating record via CloudFlare API.')
-        sys.exit(1)
-
-    logging.info('Updated record successfully.')
+    
+    sys.exit(1)
 
 def checkIpLog():
     try:
@@ -234,10 +257,12 @@ def checkIpLog():
             file.seek(0)
             ipLog = json.load(file)
             logging.info('Parsed IP log.')
+
         except ValueError:
             logging.error('Could not parse IP log.')
             ipLog = {}
         file.close()
+
     except IOError:
         logging.error('Could not access IP log. Exiting.')
         sys.exit(1)
