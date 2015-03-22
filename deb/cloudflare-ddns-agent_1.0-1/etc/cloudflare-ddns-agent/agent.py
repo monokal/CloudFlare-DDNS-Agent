@@ -190,7 +190,6 @@ def getRecords():
 
     except:
         logging.error('Error parsing records to JSON. Exiting.')
-        sys.exit(1)
     
     sys.exit(1)
 
@@ -248,7 +247,8 @@ def updateRecord(name, recordId):
     
     sys.exit(1)
 
-def checkIpLog():
+# Description:
+def checkIpLog(wanIp):
     try:
         # Open log or create if doesn't exist
         file = open(IP_LOG, 'a+')
@@ -261,29 +261,44 @@ def checkIpLog():
         except ValueError:
             logging.error('Could not parse IP log.')
             ipLog = {}
+
         file.close()
 
     except IOError:
         logging.error('Could not access IP log. Exiting.')
         sys.exit(1)
 
+# Description: Orchestrate the whole operation.
+def main():
+    try:
+        # First, get our current WAN IP.
+        wanIp = getWanIp()
+
+        # Then check if that IP has changed since the last run.
+        checkIpLog(wanIp)
+
+        # If it has, get all existing DNS records from CloudFlare.
+        records = getRecords()
+
+        # Then for each of our records.
+        for name in names:
+            # Get the record ID.
+            recordId = getRecordId(name)
+
+            # And update the it with our new IP.
+            updateRecord(name, recordId)
+    
+    except:
+        logging.error('Something bad happened in main. Exiting.')
+    
+    sys.exit(1)
+
 # Execute script
-logging.info("%s started..." % PROG_NAME)
+logging.info('DDNS update started...')
 
-# Get WAN IP
-wanIp = getWanIp()
-
-# Check if IP has changed since last run
-checkIpLog()
-
-# Get all records from CloudFlare
-records = getRecords()
-
-# For each name update the record
-for name in names:
-    recordId = getRecordId(name)
-    updateRecord(name,recordId)
+# Orchestrate the whole operation.
+main()
 
 # Exit
-logging.info("%s completed." % PROG_NAME)
+logging.info('DDNS update completed.')
 sys.exit(0)
