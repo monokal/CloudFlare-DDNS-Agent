@@ -11,6 +11,7 @@ import requests
 import json
 import logging
 import socket
+import ConfigParser
 
 # Global vars.
 PROG_NAME = 'CloudFlare DDNS Agent'
@@ -240,36 +241,76 @@ def loadIpLog(wanIp):
 
 # Description: Load values from config file.
 def loadConfig():
-    # code
-    return
+    try:
+        # Initialise a ConfigReader and read in agent.conf
+        config = ConfigParser.ConfigParser()
+        config.read('agent.conf')
+
+        # Read Authentication section
+        logging.info('Loading Authentication config...')
+        email   =   config.get('Authentication', 'Email')
+        logging.info("Loaded config (Email)              : %s" % email)
+        
+        apiKey  =   config.get('Authentication', 'ApiKey')
+        logging.info("Loaded config (API key)            : %s" % apiKey)
+        
+        zone    =   config.get('Authentication', 'Zone')
+        logging.info("Loaded config (Zone)               : %s" % zone)
+
+        # Read General section
+        logging.info('Loading General config...')
+        updateZone = config.get('General', 'UpdateZone')
+        logging.info("Loaded config (Update Zone?)       : %s" % updateZone)
+
+        # Read Endpoints section
+        logging.info('Loading Endpoints config...')
+        cfApiUrl = config.get('Endpoints', 'CfApiUrl')
+        logging.info("Loaded config (CloudFlare API URL) : %s" % cfApiUrl)
+        
+        ipResolver = config.get('Endpoints', 'IpResolver')
+        logging.info("Loaded config (IP Resolver URL)    : %s" % ipResolver)
+        
+        # Read Logs section
+        logging.info('Loading Logs config...')
+        runLog = config.get('Logs', 'RunLog')
+        logging.info("Loaded config (Run log location)   : %s" % runLog)
+        
+        ipLog = config.get('Logs', 'IpLog')
+        logging.info("Loaded config (IP log location)    : %s" % ipLog)
+        
+        return
+
+    except:
+        logging.error('Could not parse config. Exiting.')
+
+    sys.exit(1)
 
 # Description: Orchestrate the whole operation.
 def main():
-    try:
+#    try:
         # First, load in values from the config file.
         config = loadConfig()
-
+        
         # Then get our current WAN IP.
-        wanIp = getWanIp()
+        #wanIp = getWanIp()
 
         # Then check if that IP has changed since the last run.
-        loadIpLog(wanIp)
+        #loadIpLog(wanIp)
 
         # If it has, get all existing DNS records from CloudFlare.
-        records = getRecords()
+        #records = getRecords()
 
         # Then for each of our records.
-        for name in names:
+        #for name in names:
             # Get the record ID.
-            recordId = getRecordId(name)
+        #    recordId = getRecordId(name)
 
             # And update the it with our new IP.
-            updateRecord(name, recordId)
+        #    updateRecord(name, recordId)
     
-    except:
-        logging.error('Something bad happened in main. Exiting.')
+#    except:
+#        logging.error('Something bad happened in main. Exiting.')
     
-    sys.exit(1)
 
 # Execute script
 logging.info('DDNS update started...')
