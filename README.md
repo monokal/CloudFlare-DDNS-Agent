@@ -1,5 +1,5 @@
 # CloudFlare DDNS Agent
-A simple dynamic DNS agent written in Python for the CloudFlare API. Handy for home projects or development environments where you want the benefits of CloudFlare (Hosted DNS, Security, Universal SSL, Apps, etc) but don't have a static IP.
+A dynamic DNS agent for the CloudFlare API. Handy for home projects or development environments where you want the benefits of CloudFlare (Hosted DNS, Security, Universal SSL, Apps, etc) but don't have a static IP.
 
 ## Installation
 

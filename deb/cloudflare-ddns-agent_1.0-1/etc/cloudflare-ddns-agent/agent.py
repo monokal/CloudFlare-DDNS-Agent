@@ -2,39 +2,8 @@
 
 # Name:          CloudFlare DDNS Agent
 # Author:        Daniel Middleton <me@daniel-middleton.com>
+# Source:        https://github.com/daniel-middleton/CloudFlare-DDNS-Agent
 # Description:   Dynamic DNS agent for the CloudFlare API
-
-################################### CONFIG ####################################
-# TODO: Break config out in to its own file.
-# TODO: Add support for other record types.
-# TODO: Maybe turn in to a daemon and do away with Cron?
-
-# The Email address used to login to CloudFlare.
-EMAIL   = 'YOUR-NAME@YOUR-DOMAIN.TLD'
-
-# Your CloudFlare API key which can be found at https://www.cloudflare.com/my-account.html
-API_KEY = 'YOUR-API-KEY'
-
-# The Zone (website) name to update.
-ZONE    = 'YOUR-ZONE.TLD'
-
-# Names of A records to update
-names = []
-names.append(ZONE)
-names.append('www')
-#names.append('<Another A record>')
-
-# Other globals
-
-# There's clearly a potential vulnerability here should the below resolver service be
-# compromised. You can change this to point at a self-hosted service if necessary or
-# I'll host a secure public resolver for this purpose if requested.
-IP_RESOLVER = 'http://icanhazip.com'
-
-API_URL     = 'https://www.cloudflare.com/api_json.html'
-IP_LOG      = '/tmp/cf_ddns_iplog.txt'
-
-############################ No need to edit below ############################
 
 # Global imports.
 import sys
