@@ -7,6 +7,7 @@
 ################################### CONFIG ####################################
 # TODO: Break config out in to its own file.
 # TODO: Add support for other record types.
+# TODO: Maybe turn in to a daemon and do away with Cron?
 
 # The Email address used to login to CloudFlare.
 EMAIL   = 'YOUR-NAME@YOUR-DOMAIN.TLD'
@@ -248,7 +249,7 @@ def updateRecord(name, recordId):
     sys.exit(1)
 
 # Description:
-def checkIpLog(wanIp):
+def loadIpLog(wanIp):
     try:
         # Open log or create if doesn't exist
         file = open(IP_LOG, 'a+')
@@ -268,14 +269,22 @@ def checkIpLog(wanIp):
         logging.error('Could not access IP log. Exiting.')
         sys.exit(1)
 
+# Description: Load values from config file.
+def loadConfig():
+    # code
+    return
+
 # Description: Orchestrate the whole operation.
 def main():
     try:
-        # First, get our current WAN IP.
+        # First, load in values from the config file.
+        config = loadConfig()
+
+        # Then get our current WAN IP.
         wanIp = getWanIp()
 
         # Then check if that IP has changed since the last run.
-        checkIpLog(wanIp)
+        loadIpLog(wanIp)
 
         # If it has, get all existing DNS records from CloudFlare.
         records = getRecords()
