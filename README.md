@@ -1,4 +1,4 @@
-# ![alt text](https://www.cloudflare.com/media/images/brand/logo-guideline-illustrations_background-white.png "CloudFlare logo") DDNS Agent
+# ![alt text](https://www.cloudflare.com/media/images/brand/logo-guideline-illustrations_background-white.png "CloudFlare logo")DDNS Agent
 A dynamic DNS agent for the CloudFlare API. Handy for home projects or development environments where you want the benefits of CloudFlare (Hosted DNS, Security, Universal SSL, Apps, etc) but don't have a static IP.
 
 ## Installation
