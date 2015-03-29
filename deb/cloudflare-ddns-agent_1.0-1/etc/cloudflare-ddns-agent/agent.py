@@ -18,9 +18,14 @@ PROG_NAME = 'CloudFlare DDNS Agent'
 
 # Logging config.
 logging.basicConfig(
+    # Define logging format.
     format=PROG_NAME+' : %(levelname)s : %(message)s',
+
+    # Set logging location.
     filename='/var/log/cloudflare-ddns-agent.log',
-    level=logging.INFO
+    
+    # Set logging level.
+    level=logging.DEBUG
 )
 
 # Description: Check a generic HTTP status code.
@@ -241,8 +246,10 @@ def loadIpLog(wanIp):
 
 # Description: Load values from config file.
 def loadConfig():
-    # Absolute path to agent.conf
-    configPath = 'agent.conf'
+    # Path to agent.conf
+    configPath = './agent.conf'
+    
+    logging.info("Loading agent config from '%s'..." % configPath)
 
     try:
         # Initialise a ConfigReader and read in agent.conf
@@ -250,49 +257,39 @@ def loadConfig():
         config.read(configPath)
        
         # Read Authentication section
-        logging.info('Checking Authentication config...')
-        # Email
-        email  =   config.get('Authentication', 'Email')
-        logging.info("Loaded config (Email)              : %s" % email)
-
-        # API key
-        apiKey  =   config.get('Authentication', 'ApiKey')
-        logging.info("Loaded config (API key)            : %s" % apiKey)
-        # Zone
-        zone    =   config.get('Authentication', 'Zone')
-        logging.info("Loaded config (Zone)               : %s" % zone)
+        email  = config.get('Authentication', 'Email')
+        apiKey = config.get('Authentication', 'ApiKey')
+        zone   = config.get('Authentication', 'Zone')
 
         # Read General section
-        
-        # Update Zone?
-        logging.info('Loading General config...')
         updateZone = config.get('General', 'UpdateZone')
-        logging.info("Loaded config (Update Zone?)       : %s" % updateZone)
-
-        # Read Endpoints section
         
-        # CloudFlare API URL
-        logging.info('Loading Endpoints config...')
+        # Read Endpoints section
         cfApiUrl = config.get('Endpoints', 'CfApiUrl')
-        logging.info("Loaded config (CloudFlare API URL) : %s" % cfApiUrl)
-        # IP resolver
         ipResolver = config.get('Endpoints', 'IpResolver')
-        logging.info("Loaded config (IP Resolver URL)    : %s" % ipResolver)
         
         # Read Logs section
-        
-        # Run log location
-        logging.info('Loading Logs config...')
         runLog = config.get('Logs', 'RunLog')
-        logging.info("Loaded config (Run log location)   : %s" % runLog)
-        # IP log location
-        ipLog = config.get('Logs', 'IpLog')
-        logging.info("Loaded config (IP log location)    : %s" % ipLog)
+        ipLog  = config.get('Logs', 'IpLog')
 
+        # Output to log for debugging.
+        logging.debug(" - Email              : %s" % email)
+        logging.debug(" - API key            : %s" % apiKey)
+        logging.debug(" - Zone               : %s" % zone)
+        logging.debug(" - Update Zone?       : %s" % updateZone)
+        logging.debug(" - CloudFlare API URL : %s" % cfApiUrl)
+        logging.debug(" - IP Resolver URL    : %s" % ipResolver)
+        logging.debug(" - Run log location   : %s" % runLog)
+        logging.debug(" - IP log location    : %s" % ipLog)
+
+        logging.info('Loaded agent config successfully.')
         return config._sections
 
     except KeyError:
         logging.error("Missing key in config (%s). Exiting." % configPath)
+    
+    except ValueError:
+        logging.error("Missing value in config (%s). Exiting." % configPath)
 
     except:
         logging.error("Error while parsing config (%s). Exiting." % configPath)
