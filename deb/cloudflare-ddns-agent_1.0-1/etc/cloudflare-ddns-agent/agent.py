@@ -241,47 +241,61 @@ def loadIpLog(wanIp):
 
 # Description: Load values from config file.
 def loadConfig():
+    # Absolute path to agent.conf
+    configPath = 'agent.conf'
+
     try:
         # Initialise a ConfigReader and read in agent.conf
         config = ConfigParser.ConfigParser()
-        config.read('agent.conf')
-
+        config.read(configPath)
+       
         # Read Authentication section
-        logging.info('Loading Authentication config...')
-        email   =   config.get('Authentication', 'Email')
+        logging.info('Checking Authentication config...')
+        # Email
+        email  =   config.get('Authentication', 'Email')
         logging.info("Loaded config (Email)              : %s" % email)
-        
+
+        # API key
         apiKey  =   config.get('Authentication', 'ApiKey')
         logging.info("Loaded config (API key)            : %s" % apiKey)
-        
+        # Zone
         zone    =   config.get('Authentication', 'Zone')
         logging.info("Loaded config (Zone)               : %s" % zone)
 
         # Read General section
+        
+        # Update Zone?
         logging.info('Loading General config...')
         updateZone = config.get('General', 'UpdateZone')
         logging.info("Loaded config (Update Zone?)       : %s" % updateZone)
 
         # Read Endpoints section
+        
+        # CloudFlare API URL
         logging.info('Loading Endpoints config...')
         cfApiUrl = config.get('Endpoints', 'CfApiUrl')
         logging.info("Loaded config (CloudFlare API URL) : %s" % cfApiUrl)
-        
+        # IP resolver
         ipResolver = config.get('Endpoints', 'IpResolver')
         logging.info("Loaded config (IP Resolver URL)    : %s" % ipResolver)
         
         # Read Logs section
+        
+        # Run log location
         logging.info('Loading Logs config...')
         runLog = config.get('Logs', 'RunLog')
         logging.info("Loaded config (Run log location)   : %s" % runLog)
-        
+        # IP log location
         ipLog = config.get('Logs', 'IpLog')
         logging.info("Loaded config (IP log location)    : %s" % ipLog)
-        
-        return
+
+        return config._sections
+
+    except KeyError:
+        logging.error("Missing key in config (%s). Exiting." % configPath)
 
     except:
-        logging.error('Could not parse config. Exiting.')
+        logging.error("Error while parsing config (%s). Exiting." % configPath)
 
     sys.exit(1)
 
@@ -290,6 +304,7 @@ def main():
 #    try:
         # First, load in values from the config file.
         config = loadConfig()
+
         
         # Then get our current WAN IP.
         #wanIp = getWanIp()
