@@ -3,7 +3,7 @@
 # Name:          CloudFlare DDNS Agent
 # Author:        Daniel Middleton <me@daniel-middleton.com>
 # Source:        https://github.com/daniel-middleton/CloudFlare-DDNS-Agent
-# Description:   Dynamic DNS agent for the CloudFlare API
+# Description:   Dynamic DNS agent for the CloudFlare API.
 
 # Global imports.
 import sys
@@ -12,6 +12,7 @@ import json
 import logging
 import socket
 import ConfigParser
+import argparse
 
 # Global vars.
 PROG_NAME = 'CloudFlare DDNS Agent'
@@ -27,6 +28,25 @@ logging.basicConfig(
     # Set logging level.
     level=logging.DEBUG
 )
+
+# Description: Parse arguments from the command-line.
+def parseArgs():
+    try:
+        # Create parser and a required arguments group.
+        parser = argparse.ArgumentParser(description='Dynamic DNS agent for the CloudFlare API.')
+        requiredArgs = parser.add_argument_group('required arguments')
+
+        # Define required arguments. 
+        requiredArgs.add_argument('-c', '--config', help='Path to the config file.', required=True)
+        
+        # Parse and return the arguments.
+        args = parser.parse_args()
+        return args
+
+    except:
+        logging.error('Error parsing command-line arguments. Exiting.')
+    
+    sys.exit(1)
 
 # Description: Check a generic HTTP status code.
 def checkHttpResponse(code):
@@ -58,7 +78,7 @@ def checkHttpResponse(code):
             logging.error("%i - Unrecognised HTTP return code. Exiting." % code)
 
     except:
-            logging.error('Error parsing HTTP return code. Exiting.')
+        logging.error('Error parsing HTTP return code. Exiting.')
         
     sys.exit(1)
 
@@ -245,10 +265,7 @@ def loadIpLog(wanIp):
         sys.exit(1)
 
 # Description: Load values from config file.
-def loadConfig():
-    # Path to agent.conf
-    configPath = './agent.conf'
-    
+def loadConfig(configPath):
     logging.info("Loading agent config from '%s'..." % configPath)
 
     try:
@@ -299,12 +316,15 @@ def loadConfig():
 # Description: Orchestrate the whole operation.
 def main():
 #    try:
-        # First, load in values from the config file.
-        config = loadConfig()
+        # Parse arguments from the command line.
+        args = parseArgs()
+
+        # Then load in values from the config file.
+        config = loadConfig(args.config)
 
         
         # Then get our current WAN IP.
-        #wanIp = getWanIp()
+        wanIp = getWanIp()
 
         # Then check if that IP has changed since the last run.
         #loadIpLog(wanIp)
