@@ -53,7 +53,7 @@ def checkHttpResponse(code):
     try:
         # If HTTP status is OK then return immediately.
         if code == 200:
-            logging.info('200 - OK.')
+            logging.debug('200 - OK.')
             return
         # Otherwise, log appropriate error and exit.
         elif code == 400:
@@ -120,18 +120,18 @@ def checkApiResponse(response):
     sys.exit(1)
 
 # Description: Returns WAN IP of the host.
-def getWanIp():
-    logging.info('Resolving WAN IP...')
+def getWanIp(ipResolver):
+    logging.info("Obtaining WAN IP from '%s'..." % ipResolver)
 
     try:
         # Attempt GET request to resolver.
-        response = requests.get(IP_RESOLVER)
+        response = requests.get(ipResolver)
 
         # If HTTP status code isn't OK, log error and exit immediately.
         checkHttpResponse(response.status_code)
 
     except:
-        logging.error("Error obtaining WAN IP from '%s'." % IP_RESOLVER)
+        logging.error("Error obtaining WAN IP from '%s'." % ipResolver)
         sys.exit(1)
 
     try:
@@ -147,10 +147,10 @@ def getWanIp():
         return wanIp
 
     except socket.error:
-        logging.error("Invalid WAN IP obtained from '%s'." % IP_RESOLVER)
+        logging.error("Invalid WAN IP obtained from '%s'." % ipResolver)
     
     except:
-        logging.error("Error validating WAN IP from '%s'." % IP_RESOLVER)
+        logging.error("Error validating WAN IP from '%s'." % ipResolver)
     
     sys.exit(1)
 
@@ -243,26 +243,30 @@ def updateRecord(name, recordId):
     
     sys.exit(1)
 
-# Description:
-def loadIpLog(wanIp):
+# Description: Check if our IP has changed since the last run.
+def checkIpLog(ipLogPath, wanIp):
     try:
-        # Open log or create if doesn't exist
-        file = open(IP_LOG, 'a+')
-        try:
-            logging.info('Found IP log. Parsing data...')
-            file.seek(0)
-            ipLog = json.load(file)
-            logging.info('Parsed IP log.')
-
-        except ValueError:
-            logging.error('Could not parse IP log.')
-            ipLog = {}
-
-        file.close()
-
+        # If the log exists
+        if os.path.isfile(ipLogPath):
+            logging.info('IP log exists.')
+            
+            with open (ipLogPath, "a+") as ipLog:
+                loggedIp = ipLog.read()
+                
+            # Throw an exception if the IP is invalid.
+            socket.inet_aton(loggedIp)
+      
+        # Otherwise, create the file and log the current WAN IP. 
+        else:
+            logging.info('IP log does not exist.')
+    
     except IOError:
-        logging.error('Could not access IP log. Exiting.')
-        sys.exit(1)
+        logging.error("Error trying to read or create '%s'." % ipLogPath)
+    
+    except:
+        logging.error("Error while processing IP log (%s)." % ipLogPath)
+
+    sys.exit(1)
 
 # Description: Load values from config file.
 def loadConfig(configPath):
@@ -321,13 +325,12 @@ def main():
 
         # Then load in values from the config file.
         config = loadConfig(args.config)
-
         
         # Then get our current WAN IP.
-        wanIp = getWanIp()
+        wanIp = getWanIp(config['Endpoints']['ipresolver'])
 
         # Then check if that IP has changed since the last run.
-        #loadIpLog(wanIp)
+        checkIpLog(config['Logs']['iplog'], wanIp)
 
         # If it has, get all existing DNS records from CloudFlare.
         #records = getRecords()
