@@ -1,6 +1,6 @@
 ![CloudFlare logo](https://www.cloudflare.com/media/images/brand/logo-guideline-illustrations_background-white.png)
 # CloudFlare DDNS Agent
-A dynamic DNS agent for the CloudFlare API. Handy for home projects, development environments, or as part of a DNS-based HA/failover solution. Allows you to use the benefits of CloudFlare (Hosted DNS, Security, Universal SSL, Apps, etc) without the requirement of a single static endpoint or IP.
+A dynamic DNS agent for the CloudFlare API. Handy for home projects, development environments, or as part of a DNS-based HA/failover solution (more to come soon, think [Serf](https://www.serfdom.io/)). This allows you to use the benefits of CloudFlare (Hosted DNS, Security, Universal SSL, Apps, etc) without the requirement of a single static endpoint or IP.
 
 ## Installation
 
