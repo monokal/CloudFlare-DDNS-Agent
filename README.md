@@ -1,42 +1,34 @@
-![alt text](https://www.cloudflare.com/media/images/brand/logo-guideline-illustrations_background-white.png "CloudFlare logo")
 # CloudFlare DDNS Agent
-A dynamic DNS agent for the CloudFlare API. Handy for home projects or development environments where you want the benefits of CloudFlare (Hosted DNS, Security, Universal SSL, Apps, etc) but don't have a static IP.
+A dynamic DNS agent for the CloudFlare API. Handy for home projects, development environments, or as part of a DNS-based HA/failover solution where you want the benefits of CloudFlare (Hosted DNS, Security, Universal SSL, Apps, etc) but don't have a single endpoint or static IP.
 
 ## Installation
 
 ##### Debian / Ubuntu
-Simply installing the DEB package (found in "deb" folder of this repo) as per below will drop everything in to place and add a cron job to run every hour by default, though this can be tweaked in "/etc/cron.d/cloudflare-ddns-agent".
+Simply installing the DEB package (found in "deb" folder of this repo) as per below will drop everything in to place and add a cron job to run every hour by default, though this can be tweaked in "/etc/cron.d/cloudflare-ddns-agent". See "Configuration" below.
 ```bash
-sudo dpkg -i cloudflare-ddns-agent_1.0-1.deb
+sudo dpkg -i cloudflare-ddns-agent_<version>.deb
 ```
 
 ##### Alternative / Other Distros
-- Drop "/etc/cloudflare-ddns-agent/cloudflare-ddns-agent.py" in place, found in the "deb/cloudflare-ddns-agent_1.0-1/etc/cloudflare-ddns-agent" directory of this repo.
-- Drop in a crontab. Example below runs every hour:
+- Drop "/etc/cloudflare-ddns-agent/agent.py" in place, found in the "deb/cloudflare-ddns-agent_<version>/etc/cloudflare-ddns-agent" directory of this repo.
+- Drop in a crontab. The example below runs every hour:
 ```bash
-0 * * * * /etc/cloudflare-ddns-agent/cloudflare-ddns-agent.py
+0 * * * * /etc/cloudflare-ddns-agent/agent.py --config /etc/cloudflare-ddns-agent/agent.conf
 ```
+- See "Configuration" below.
 
 ## Configuration
-Just edit the "CloudFlare config" section at the top of the script (/etc/cloudflare-ddns-agent/cloudflare-ddns-agent.py) as seen below:
+By default, an "agent.conf" file is expected to be found at "/etc/cloudflare-ddns-agent/agent.conf", although you can tweak the "--config" argument in the cron job. You should copy the example config file found at "/etc/cloudflare-ddns-agent/agent.conf.example" as per below, and edit it as commented.
 
-```python
-############################ CloudFlare config ################################
-
-# API credentials
-EMAIL           =       'YOUR-NAME@YOUR-DOMAIN.TLD'
-API_KEY         =       'YOUR-API-KEY'
-
-# Zone name
-ZONE            =       'YOUR-ZONE.TLD'
-
-# Names of A records to update, add more lines as required
-names = []
-names.append(ZONE) # Root domain
-names.append('www')
-
-############################## End of config ##################################
+```bash
+cp /etc/cloudflare-ddns-agent/agent.conf.example /etc/cloudflare-ddns-agent/agent.conf
 ```
+```bash
+vim /etc/cloudflare-ddns-agent/agent.conf
+```
+
+## Usage
+text
 
 ## Logs
 By default, the script will log to syslog.
