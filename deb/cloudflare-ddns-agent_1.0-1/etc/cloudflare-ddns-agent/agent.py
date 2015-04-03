@@ -91,7 +91,7 @@ def checkApiResponse(response):
 
     # Otherwise, parse response body to JSON.
     try:
-        responseJson = json.load(response.text)
+        responseJson = json.loads(response.text)
 
     except:
         logging.error('Error parsing HTTP response body to JSON. Exiting.')
@@ -100,25 +100,16 @@ def checkApiResponse(response):
     try:
         # If result is success, return immediately.
         if responseJson["result"] == 'success':
-            logging.info('Result: Success.')
+            logging.info('API result: Success.')
             return
 
-        # Otherwise, log appropriate error and exit.
-        elif responseJson["result"] == 'E_UNAUTH':
-            logging.info(
-                'Result: E_UNAUTH - Authentication could not be completed. Exiting.')
-
-        elif responseJson["result"] == 'E_INVLDINPUT':
-            logging.info(
-                'Result: E_INVLDINPUT - Some other input was not valid. Exiting.')
-
-        elif responseJson["result"] == 'E_MAXAPI':
-            logging.info(
-                'Result: E_MAXAPI - You have exceeded your allowed number of API calls. Exiting.')
+        # Otherwise, log the error and exit.
+        elif responseJson["result"] == 'error':
+            logging.error("CloudFlare API: %s - %s." %
+                          (responseJson['err_code'], responseJson['msg']))
 
         else:
-            logging.info("Result: %s - Unrecognised API result. Exiting." %
-                         responseJson["result"])
+            logging.error('Unhandled response from CloudFlare API. Exiting.')
 
     except:
         logging.error('Error analysing the JSON response body. Exiting.')
@@ -381,12 +372,10 @@ def main():
         sys.exit(1)
 
     # If it has, get all existing DNS records from CloudFlare.
-    #apiKey, email, zone, apiUrl
-    records = getRecords(
-        config['Authentication']['apikey'],
-        config['Authentication']['email'],
-        config['Authentication']['zone'],
-        config['Endpoints']['cfapiurl'])
+    records = getRecords(config['Authentication']['apikey'],
+                         config['Authentication']['email'],
+                         config['Authentication']['zone'],
+                         config['Endpoints']['cfapiurl'])
 
     print(records)
 
