@@ -1,5 +1,5 @@
 # Non-example config files
-*.config
+*.conf
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
