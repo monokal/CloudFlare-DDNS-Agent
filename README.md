@@ -2,8 +2,6 @@
 # CloudFlare DDNS Agent
 A dynamic DNS agent for the CloudFlare API. Handy for home projects, development environments, or as part of a DNS-based HA/failover solution. Allows you to use the benefits of CloudFlare (Hosted DNS, Security, Universal SSL, Apps, etc) without the requirement of a single static endpoint or IP.
 
-----------
-
 ## Installation
 
 ##### Debian / Ubuntu
