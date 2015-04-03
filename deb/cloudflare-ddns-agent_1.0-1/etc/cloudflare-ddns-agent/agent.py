@@ -68,11 +68,13 @@ def checkHttpResponse(code):
         elif code == 410:
             logging.error('Server returned: 410 - Gone. Exiting.')
         elif code == 500:
-            logging.error('Server returned: 500 - Internal Server Error. Exiting.')
+            logging.error(
+                'Server returned: 500 - Internal Server Error. Exiting.')
         elif code == 501:
             logging.error('Server returned: 501 - Not Implemented. Exiting.')
         elif code == 503:
-            logging.error('Server returned: 503 - Service Unavailable. Exiting.')
+            logging.error(
+                'Server returned: 503 - Service Unavailable. Exiting.')
         elif code == 550:
             logging.error('Server returned: 550 - Permission Denied. Exiting.')
         else:
@@ -259,16 +261,13 @@ def checkIpLog(ipLogPath, wanIp):
 
             # If the current WAN IP matches the logged IP, nothing more to do.
             if wanIp == loggedIp:
-                logging.info(
-                    "Current IP matches logged IP (%s)."
-                    % wanIp)
+                logging.info("Current IP matches logged IP (%s)." % wanIp)
                 return False
 
             # Otherwise, write the current WAN IP to the IP log and continue.
             else:
-                logging.info(
-                    "Current IP (%s) does not match logged IP (%s)."
-                    % (wanIp, loggedIp))
+                logging.info("Current IP (%s) does not match logged IP (%s)." %
+                             (wanIp, loggedIp))
 
                 with open(ipLogPath, "w") as ipLog:
                     ipLog.write("%s" % wanIp)
@@ -379,12 +378,12 @@ def main():
                          config['Endpoints']['cfapiurl'])
     
     # Then for each of our records.
-#    for name in config[]:
+    #    for name in config[]:
     # Get the record ID.
-#        recordId = getRecordId(name)
+    #        recordId = getRecordId(name)
 
     # And update the it with our new IP.
-#        updateRecord(name, recordId)
+    #        updateRecord(name, recordId)
 
     #    except:
     #        logging.error('Something bad happened in main. Exiting.')
