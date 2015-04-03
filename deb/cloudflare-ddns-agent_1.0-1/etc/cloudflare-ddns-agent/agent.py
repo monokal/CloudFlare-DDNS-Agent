@@ -18,35 +18,35 @@ import argparse
 PROG_NAME = 'CloudFlare DDNS Agent'
 
 # Logging config.
-logging.basicConfig(
-    # Define logging format.
-    format=PROG_NAME+' : %(levelname)s : %(message)s',
-
+logging.basicConfig(  # Define logging format.
+    format=PROG_NAME + ' : %(levelname)s : %(message)s',
     # Set logging location.
-    filename='/var/log/cloudflare-ddns-agent.log',
-    
-    # Set logging level.
-    level=logging.DEBUG
-)
+    filename='/var/log/cloudflare-ddns-agent.log',  # Set logging level.
+    level=logging.DEBUG)
+
 
 # Description: Parse arguments from the command-line.
 def parseArgs():
     try:
         # Create parser and a required arguments group.
-        parser = argparse.ArgumentParser(description='Dynamic DNS agent for the CloudFlare API.')
+        parser = argparse.ArgumentParser(
+            description='Dynamic DNS agent for the CloudFlare API.')
         requiredArgs = parser.add_argument_group('required arguments')
 
-        # Define required arguments. 
-        requiredArgs.add_argument('-c', '--config', help='Path to the config file.', required=True)
-        
+        # Define required arguments.
+        requiredArgs.add_argument('-c', '--config',
+                                  help='Path to the config file.',
+                                  required=True)
+
         # Parse and return the arguments.
         args = parser.parse_args()
         return args
 
     except:
         logging.error('Error parsing command-line arguments. Exiting.')
-    
+
     sys.exit(1)
+
 
 # Description: Check a generic HTTP status code.
 def checkHttpResponse(code):
@@ -79,8 +79,9 @@ def checkHttpResponse(code):
 
     except:
         logging.error('Error parsing HTTP return code. Exiting.')
-        
+
     sys.exit(1)
+
 
 # Description: Check a CloudFlare API HTTP response.
 def checkApiResponse(response):
@@ -103,21 +104,26 @@ def checkApiResponse(response):
 
         # Otherwise, log appropriate error and exit.
         elif responseJson["result"] == 'E_UNAUTH':
-            logging.info('Result: E_UNAUTH - Authentication could not be completed. Exiting.')
-        
+            logging.info(
+                'Result: E_UNAUTH - Authentication could not be completed. Exiting.')
+
         elif responseJson["result"] == 'E_INVLDINPUT':
-            logging.info('Result: E_INVLDINPUT - Some other input was not valid. Exiting.')
-        
+            logging.info(
+                'Result: E_INVLDINPUT - Some other input was not valid. Exiting.')
+
         elif responseJson["result"] == 'E_MAXAPI':
-            logging.info('Result: E_MAXAPI - You have exceeded your allowed number of API calls. Exiting.')
-        
+            logging.info(
+                'Result: E_MAXAPI - You have exceeded your allowed number of API calls. Exiting.')
+
         else:
-            logging.info("Result: %s - Unrecognised API result. Exiting." % responseJson["result"])
+            logging.info("Result: %s - Unrecognised API result. Exiting." %
+                         responseJson["result"])
 
     except:
         logging.error('Error analysing the JSON response body. Exiting.')
 
     sys.exit(1)
+
 
 # Description: Returns WAN IP of the host.
 def getWanIp(ipResolver):
@@ -138,7 +144,7 @@ def getWanIp(ipResolver):
         # Otherwise, try to extract the IP.
         wanIp = response.text.strip()
         response.close()
-        
+
         # Throw an exception if the IP is invalid.
         socket.inet_aton(wanIp)
 
@@ -148,11 +154,12 @@ def getWanIp(ipResolver):
 
     except socket.error:
         logging.error("Invalid WAN IP obtained from '%s'." % ipResolver)
-    
+
     except:
         logging.error("Error validating WAN IP from '%s'." % ipResolver)
-    
+
     sys.exit(1)
+
 
 # Description: Get all of our existing DNS records from CloudFlare API.
 def getRecords():
@@ -160,34 +167,36 @@ def getRecords():
 
     # Construct payload.
     payload = {
-        'a'     : 'rec_load_all',
-        'tkn'   : API_KEY,
-        'email' : EMAIL,
-        'z'     : ZONE, 
+        'a': 'rec_load_all',
+        'tkn': API_KEY,
+        'email': EMAIL,
+        'z': ZONE,
     }
 
     try:
         # Perform the GET request.
         response = requests.get(API_URL, params=payload)
-        
+
         # If API response isn't good, log error and exit immediately.
         checkApiResponse(response)
-    
+
     except:
         logging.error('Error obtaining DNS records from CloudFlare API.')
         sys.exit(1)
-    
+
     try:
         recordsJson = json.load(response.text)
         response.close()
-    
-        logging.info("Obtained %i DNS records from CloudFlare API." % recordsJson["response"]["recs"]["count"])
+
+        logging.info("Obtained %i DNS records from CloudFlare API." %
+                     recordsJson["response"]["recs"]["count"])
         return records
 
     except:
         logging.error('Error parsing records to JSON. Exiting.')
-    
+
     sys.exit(1)
+
 
 # Description: Return ID of a given record name.
 def getRecordId(name):
@@ -200,48 +209,50 @@ def getRecordId(name):
             if record['display_name'] == name:
                 logging.info("Obtained record ID: %s" % record['rec_id'])
                 return record['rec_id']
-                
-        # If we're here, we couldn't find the record name.
+
+                # If we're here, we couldn't find the record name.
         logging.error("Could not find a record matching: %s" % name)
-    
+
     except:
         logging.error('Error while searching for record. Exiting.')
 
     sys.exit(1)
 
+
 # Description: Update a given record with new WAN IP.
 def updateRecord(name, recordId):
     logging.info("Updating '%s' to point at '%s'..." % (name, wanIp))
-    
+
     # Construct payload.
     payload = {
-        'a'            : 'rec_edit',
-        'tkn'          : API_KEY,
-        'email'        : EMAIL,
-        'z'            : ZONE,
-        'type'         : 'A',
-        'id'           : recordId,
-        'name'         : name,
-        'content'      : wanIp,
-        'ttl'          : 1,
-        'service_mode' : 1,
+        'a': 'rec_edit',
+        'tkn': API_KEY,
+        'email': EMAIL,
+        'z': ZONE,
+        'type': 'A',
+        'id': recordId,
+        'name': name,
+        'content': wanIp,
+        'ttl': 1,
+        'service_mode': 1,
     }
 
     try:
         # Try to update the record.
         response = requests.get(API_URL, params=payload)
-        
+
         # If API response isn't good, log error and exit immediately.
         checkApiResponse(response)
-    
+
         # Otherwise, log success and return.
         logging.info('Record updated successfully.')
         return
 
     except:
         logging.error('Error updating record via CloudFlare API.')
-    
+
     sys.exit(1)
+
 
 # Description: Check if our IP has changed since the last run.
 def checkIpLog(ipLogPath, wanIp):
@@ -249,24 +260,25 @@ def checkIpLog(ipLogPath, wanIp):
         # If the log exists
         if os.path.isfile(ipLogPath):
             logging.info('IP log exists.')
-            
-            with open (ipLogPath, "a+") as ipLog:
+
+            with open(ipLogPath, "a+") as ipLog:
                 loggedIp = ipLog.read()
-                
-            # Throw an exception if the IP is invalid.
+
+                # Throw an exception if the IP is invalid.
             socket.inet_aton(loggedIp)
-      
-        # Otherwise, create the file and log the current WAN IP. 
+
+    # Otherwise, create the file and log the current WAN IP.
         else:
             logging.info('IP log does not exist.')
-    
+
     except IOError:
         logging.error("Error trying to read or create '%s'." % ipLogPath)
-    
+
     except:
         logging.error("Error while processing IP log (%s)." % ipLogPath)
 
     sys.exit(1)
+
 
 # Description: Load values from config file.
 def loadConfig(configPath):
@@ -276,22 +288,22 @@ def loadConfig(configPath):
         # Initialise a ConfigReader and read in agent.conf
         config = ConfigParser.ConfigParser()
         config.read(configPath)
-       
+
         # Read Authentication section
-        email  = config.get('Authentication', 'Email')
+        email = config.get('Authentication', 'Email')
         apiKey = config.get('Authentication', 'ApiKey')
-        zone   = config.get('Authentication', 'Zone')
+        zone = config.get('Authentication', 'Zone')
 
         # Read General section
         updateZone = config.get('General', 'UpdateZone')
-        
+
         # Read Endpoints section
         cfApiUrl = config.get('Endpoints', 'CfApiUrl')
         ipResolver = config.get('Endpoints', 'IpResolver')
-        
+
         # Read Logs section
         runLog = config.get('Logs', 'RunLog')
-        ipLog  = config.get('Logs', 'IpLog')
+        ipLog = config.get('Logs', 'IpLog')
 
         # Output to log for debugging.
         logging.debug(" - Email              : %s" % email)
@@ -308,7 +320,7 @@ def loadConfig(configPath):
 
     except KeyError:
         logging.error("Missing key in config (%s). Exiting." % configPath)
-    
+
     except ValueError:
         logging.error("Missing value in config (%s). Exiting." % configPath)
 
@@ -317,37 +329,39 @@ def loadConfig(configPath):
 
     sys.exit(1)
 
+
 # Description: Orchestrate the whole operation.
 def main():
-#    try:
-        # Parse arguments from the command line.
-        args = parseArgs()
+    #    try:
+    # Parse arguments from the command line.
+    args = parseArgs()
 
-        # Then load in values from the config file.
-        config = loadConfig(args.config)
-        
-        # Then get our current WAN IP.
-        wanIp = getWanIp(config['Endpoints']['ipresolver'])
+    # Then load in values from the config file.
+    config = loadConfig(args.config)
 
-        # Then check if that IP has changed since the last run.
-        checkIpLog(config['Logs']['iplog'], wanIp)
+    # Then get our current WAN IP.
+    wanIp = getWanIp(config['Endpoints']['ipresolver'])
 
-        # If it has, get all existing DNS records from CloudFlare.
-        #records = getRecords()
+    # Then check if that IP has changed since the last run.
+    #checkIpLog(config['Logs']['iplog'], wanIp)
 
-        # Then for each of our records.
-        #for name in names:
-            # Get the record ID.
-        #    recordId = getRecordId(name)
+    # If it has, get all existing DNS records from CloudFlare.
+    #records = getRecords()
 
-            # And update the it with our new IP.
-        #    updateRecord(name, recordId)
-    
-#    except:
-#        logging.error('Something bad happened in main. Exiting.')
-    
+    # Then for each of our records.
+    #for name in names:
+    # Get the record ID.
+    #    recordId = getRecordId(name)
 
-# Execute script
+    # And update the it with our new IP.
+    #    updateRecord(name, recordId)
+
+    #    except:
+    #        logging.error('Something bad happened in main. Exiting.')
+
+    # Execute script
+
+
 logging.info('DDNS update started...')
 
 # Orchestrate the whole operation.
