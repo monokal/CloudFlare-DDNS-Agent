@@ -54,27 +54,27 @@ def checkHttpResponse(code):
     try:
         # If HTTP status is OK then return immediately.
         if code == 200:
-            logging.debug('200 - OK.')
+            logging.debug('Server returned: 200 - OK.')
             return
         # Otherwise, log appropriate error and exit.
         elif code == 400:
-            logging.error('400 - Bad Request. Exiting.')
+            logging.error('Server returned: 400 - Bad Request. Exiting.')
         elif code == 401:
-            logging.error('401 - Unauthorised. Exiting.')
+            logging.error('Server returned: 401 - Unauthorised. Exiting.')
         elif code == 403:
-            logging.error('403 - Forbidden. Exiting.')
+            logging.error('Server returned: 403 - Forbidden. Exiting.')
         elif code == 404:
-            logging.error('404 - Not Found. Exiting.')
+            logging.error('Server returned: 404 - Not Found. Exiting.')
         elif code == 410:
-            logging.error('410 - Gone. Exiting.')
+            logging.error('Server returned: 410 - Gone. Exiting.')
         elif code == 500:
-            logging.error('500 - Internal Server Error. Exiting.')
+            logging.error('Server returned: 500 - Internal Server Error. Exiting.')
         elif code == 501:
-            logging.error('501 - Not Implemented. Exiting.')
+            logging.error('Server returned: 501 - Not Implemented. Exiting.')
         elif code == 503:
-            logging.error('503 - Service Unavailable. Exiting.')
+            logging.error('Server returned: 503 - Service Unavailable. Exiting.')
         elif code == 550:
-            logging.error('550 - Permission Denied. Exiting.')
+            logging.error('Server returned: 550 - Permission Denied. Exiting.')
         else:
             logging.error("%i - Unrecognised HTTP return code. Exiting." % code)
 
@@ -260,14 +260,14 @@ def checkIpLog(ipLogPath, wanIp):
             # If the current WAN IP matches the logged IP, nothing more to do.
             if wanIp == loggedIp:
                 logging.info(
-                    "Current IP matches logged IP (%s). DNS update not required."
+                    "Current IP matches logged IP (%s)."
                     % wanIp)
                 return False
 
             # Otherwise, write the current WAN IP to the IP log and continue.
             else:
                 logging.info(
-                    "Current IP (%s) does not match logged IP (%s). DNS update required."
+                    "Current IP (%s) does not match logged IP (%s)."
                     % (wanIp, loggedIp))
 
                 with open(ipLogPath, "w") as ipLog:
@@ -377,19 +377,17 @@ def main():
                          config['Authentication']['email'],
                          config['Authentication']['zone'],
                          config['Endpoints']['cfapiurl'])
-
+    
     # Then for each of our records.
-    #for name in names:
+#    for name in config[]:
     # Get the record ID.
-    #    recordId = getRecordId(name)
+#        recordId = getRecordId(name)
 
     # And update the it with our new IP.
-    #    updateRecord(name, recordId)
+#        updateRecord(name, recordId)
 
     #    except:
     #        logging.error('Something bad happened in main. Exiting.')
-
-    # Execute script
 
     return
 
