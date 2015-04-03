@@ -172,12 +172,13 @@ def getRecords(apiKey, email, zone, apiUrl):
         sys.exit(1)
 
     try:
-        recordsJson = json.load(response.text)
+        recordsJson = json.loads(response.text)
         response.close()
 
         logging.info("Obtained %i DNS records from CloudFlare API." %
-                     recordsJson["response"]["recs"]["count"])
-        return records
+                     recordsJson['response']['recs']['count'])
+
+        return recordsJson
 
     except:
         logging.error('Error parsing records to JSON. Exiting.')
@@ -376,8 +377,6 @@ def main():
                          config['Authentication']['email'],
                          config['Authentication']['zone'],
                          config['Endpoints']['cfapiurl'])
-
-    print(records)
 
     # Then for each of our records.
     #for name in names:
