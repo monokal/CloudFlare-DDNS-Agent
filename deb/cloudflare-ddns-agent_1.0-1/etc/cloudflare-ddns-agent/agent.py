@@ -13,6 +13,7 @@ import logging
 import socket
 import ConfigParser
 import argparse
+import os
 
 # Global vars.
 PROG_NAME = 'CloudFlare DDNS Agent'
@@ -162,20 +163,15 @@ def getWanIp(ipResolver):
 
 
 # Description: Get all of our existing DNS records from CloudFlare API.
-def getRecords():
+def getRecords(apiKey, email, zone, apiUrl):
     logging.info('Obtaining existing DNS records from CloudFlare API...')
 
     # Construct payload.
-    payload = {
-        'a': 'rec_load_all',
-        'tkn': API_KEY,
-        'email': EMAIL,
-        'z': ZONE,
-    }
+    payload = {'a': 'rec_load_all', 'tkn': apiKey, 'email': email, 'z': zone, }
 
     try:
         # Perform the GET request.
-        response = requests.get(API_URL, params=payload)
+        response = requests.get(apiUrl, params=payload)
 
         # If API response isn't good, log error and exit immediately.
         checkApiResponse(response)
@@ -254,25 +250,53 @@ def updateRecord(name, recordId):
     sys.exit(1)
 
 
-# Description: Check if our IP has changed since the last run.
+# Description: Compare the logged IP with the current IP to determine if a DNS update is required.
 def checkIpLog(ipLogPath, wanIp):
     try:
-        # If the log exists
+        # If the IP log exists.
         if os.path.isfile(ipLogPath):
-            logging.info('IP log exists.')
+            logging.debug(
+                'IP log exists. Comparing logged IP with current WAN IP.')
 
+            # Read in the logged IP.
             with open(ipLogPath, "a+") as ipLog:
                 loggedIp = ipLog.read()
 
-                # Throw an exception if the IP is invalid.
+            # Throw an exception if the logged IP is invalid/corrupt.
             socket.inet_aton(loggedIp)
 
-    # Otherwise, create the file and log the current WAN IP.
+            # If the current WAN IP matches the logged IP, nothing more to do.
+            if wanIp == loggedIp:
+                logging.info(
+                    "Current IP matches logged IP (%s). DNS update not required."
+                    % wanIp)
+                return False
+
+            # Otherwise, write the current WAN IP to the IP log and continue.
+            else:
+                logging.info(
+                    "Current IP (%s) does not match logged IP (%s). DNS update required."
+                    % (wanIp, loggedIp))
+
+                with open(ipLogPath, "w") as ipLog:
+                    ipLog.write("%s" % wanIp)
+
+                return True
+
+        # Otherwise, create the file, log the current WAN IP and continue.
         else:
-            logging.info('IP log does not exist.')
+            logging.info(
+                'IP log does not exist (first run or system rebooted). DNS update will run.')
+            with open(ipLogPath, "w") as ipLog:
+                ipLog.write("%s" % wanIp)
+
+            return True
 
     except IOError:
         logging.error("Error trying to read or create '%s'." % ipLogPath)
+
+    except socket.error:
+        logging.error("Invalid logged IP obtained from '%s'." % ipLogPath)
 
     except:
         logging.error("Error while processing IP log (%s)." % ipLogPath)
@@ -342,11 +366,29 @@ def main():
     # Then get our current WAN IP.
     wanIp = getWanIp(config['Endpoints']['ipresolver'])
 
-    # Then check if that IP has changed since the last run.
-    #checkIpLog(config['Logs']['iplog'], wanIp)
+    # Then check if that IP has changed since the last run. If not, exit.
+    updateRequired = checkIpLog(config['Logs']['iplog'], wanIp)
+
+    if updateRequired == True:
+        logging.info('DNS update is required.')
+
+    elif updateRequired == False:
+        logging.info('DNS update is not required.')
+        sys.exit(0)
+
+    else:
+        logging.error('Error while determining if DNS update is required.')
+        sys.exit(1)
 
     # If it has, get all existing DNS records from CloudFlare.
-    #records = getRecords()
+    #apiKey, email, zone, apiUrl
+    records = getRecords(
+        config['Authentication']['apikey'],
+        config['Authentication']['email'],
+        config['Authentication']['zone'],
+        config['Endpoints']['cfapiurl'])
+
+    print(records)
 
     # Then for each of our records.
     #for name in names:
@@ -360,6 +402,8 @@ def main():
     #        logging.error('Something bad happened in main. Exiting.')
 
     # Execute script
+
+    return
 
 
 logging.info('DDNS update started...')
