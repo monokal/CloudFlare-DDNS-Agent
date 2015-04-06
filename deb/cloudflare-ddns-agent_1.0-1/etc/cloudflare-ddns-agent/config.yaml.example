@@ -1,0 +1,44 @@
+# Name:          config.yaml
+# Author:        Daniel Middleton <me@daniel-middleton.com>
+# Source:        https://github.com/daniel-middleton/CloudFlare-DDNS-Agent
+# Description:   YAML configuration file for the CloudFlare DDNS Agent
+# Notes:         1. There's clearly a potential vulnerability should the below IP resolver service be
+#                   compromised. You can change this to point at a self-hosted service if necessary or
+#                   I'll host a secure public resolver for this purpose if requested (via GitHub).
+
+# Settings used to authenticate in to the CloudFlare API.
+authentication:
+    email  : email@address.com # The Email address used to login to CloudFlare.
+    apiKey : your-api-key      # Your CloudFlare API key which can be found at https://www.cloudflare.com/my-account.html
+    zone   : your-zone.com     # The Zone (website) name.
+
+# Other general settings.
+general:
+    updateZone : yes # Update the main zone A record as well as the below records.
+
+# Records to sync with your WAN IP. Add more as required.
+records:
+    www:
+        type : A   # Record type.
+        ttl  : 120 # Time To Live. 1 is automatic, otherwise value must in between 120 and 86400 seconds.
+        mode : 1   # Service Mode. 1 is orange cloud (via CloudFlare Proxy) and 0 is grey cloud (direct).
+
+#    anotherRecord:
+#        type : A
+#        ttl  : 120
+#        mode : 1
+
+#    andAnotherRecord:
+#        type : A
+#        ttl  : 120
+#        mode : 1
+
+# Endpoint URLs.
+endpoints:
+    apiUrl   : https://www.cloudflare.com/api_json.html # CloudFlare API endpoint URL.
+    ipResolver : http://icanhazip.com                   # IP resolver service endpoint URL.
+
+# Log locations.
+logs:
+    runLog : /var/log/cloudflare-ddns-agent.log # The agent runtime log.
+    ipLog  : /tmp/cf_ddns_iplog.txt             # The IP log used by the agent to prevent unnecessary record updates.

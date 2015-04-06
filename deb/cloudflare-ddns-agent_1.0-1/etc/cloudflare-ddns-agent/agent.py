@@ -6,14 +6,19 @@
 # Description:   Dynamic DNS agent for the CloudFlare API.
 
 # Global imports.
+#try:
 import sys
 import requests
 import json
 import logging
 import socket
-import ConfigParser
+import yaml
 import argparse
 import os
+
+#except:
+#    print('Error while trying to import required libraries. Exiting.')
+#    sys.exit(1)
 
 # Global vars.
 PROG_NAME = 'CloudFlare DDNS Agent'
@@ -189,36 +194,36 @@ def getRecords(apiKey, email, zone, apiUrl):
 
 
 # Description: Return ID of a given record name.
-def getRecordId(name):
+def getRecordId(records, name):
     logging.info("Searching for record ID of: %s" % name)
 
-    try:
-        # Search records for the required name.
-        for record in records['response']['recs']['objs']:
-            # When found, return its ID.
-            if record['display_name'] == name:
-                logging.info("Obtained record ID: %s" % record['rec_id'])
-                return record['rec_id']
+#try:
+    # Search records for the required name.
+    for record in records['response']['recs']['objs']:
+        # When found, return its ID.
+        if record['display_name'] == name:
+            logging.info("Obtained record ID: %s" % record['rec_id'])
+            return record['rec_id']
 
-                # If we're here, we couldn't find the record name.
-        logging.error("Could not find a record matching: %s" % name)
+            # If we're here, we couldn't find the record name.
+    logging.error("Could not find a record matching: %s" % name)
 
-    except:
-        logging.error('Error while searching for record. Exiting.')
+#except:
+#    logging.error('Error while searching for record. Exiting.')
 
     sys.exit(1)
 
 
 # Description: Update a given record with new WAN IP.
-def updateRecord(name, recordId):
+def updateRecord(wanIp, name, recordId, apiKey, email, zone, apiUrl):
     logging.info("Updating '%s' to point at '%s'..." % (name, wanIp))
 
     # Construct payload.
     payload = {
         'a': 'rec_edit',
-        'tkn': API_KEY,
-        'email': EMAIL,
-        'z': ZONE,
+        'tkn': apiKey,
+        'email': email,
+        'z': zone,
         'type': 'A',
         'id': recordId,
         'name': name,
@@ -229,7 +234,7 @@ def updateRecord(name, recordId):
 
     try:
         # Try to update the record.
-        response = requests.get(API_URL, params=payload)
+        response = requests.get(apiUrl, params=payload)
 
         # If API response isn't good, log error and exit immediately.
         checkApiResponse(response)
@@ -253,7 +258,7 @@ def checkIpLog(ipLogPath, wanIp):
                 'IP log exists. Comparing logged IP with current WAN IP.')
 
             # Read in the logged IP.
-            with open(ipLogPath, "a+") as ipLog:
+            with open(ipLogPath, "r") as ipLog:
                 loggedIp = ipLog.read()
 
             # Throw an exception if the logged IP is invalid/corrupt.
@@ -300,44 +305,47 @@ def loadConfig(configPath):
     logging.info("Loading agent config from '%s'..." % configPath)
 
     try:
-        # Initialise a ConfigReader and read in agent.conf
-        config = ConfigParser.ConfigParser()
-        config.read(configPath)
+        # Open config.yaml
+        configFile = open(configPath)
 
-        # Read Authentication section
-        email = config.get('Authentication', 'Email')
-        apiKey = config.get('Authentication', 'ApiKey')
-        zone = config.get('Authentication', 'Zone')
+        # Parse config.yaml to YAML.
+        configDict = yaml.safe_load(configFile)
 
-        # Read General section
-        updateZone = config.get('General', 'UpdateZone')
+        # Close config.yaml
+        configFile.close()
 
-        # Read Endpoints section
-        cfApiUrl = config.get('Endpoints', 'CfApiUrl')
-        ipResolver = config.get('Endpoints', 'IpResolver')
+        # Mandatory keys.
+        requiredKeys = [
+            'authentication',
+#            'email',
+#            'apiKey',
+#            'zone',
+            'general',
+#            'updateZone',
+            'records',
+            'endpoints',
+#            'apiUrl',
+#            'ipResolver',
+            'logs',
+#            'runLog',
+#            'ipLog',
+        ]
 
-        # Read Logs section
-        runLog = config.get('Logs', 'RunLog')
-        ipLog = config.get('Logs', 'IpLog')
+        # For each required key.
+        for rKey in requiredKeys:
 
-        # Output to log for debugging.
-        logging.debug(" - Email              : %s" % email)
-        logging.debug(" - API key            : %s" % apiKey)
-        logging.debug(" - Zone               : %s" % zone)
-        logging.debug(" - Update Zone?       : %s" % updateZone)
-        logging.debug(" - CloudFlare API URL : %s" % cfApiUrl)
-        logging.debug(" - IP Resolver URL    : %s" % ipResolver)
-        logging.debug(" - Run log location   : %s" % runLog)
-        logging.debug(" - IP log location    : %s" % ipLog)
+            # If a match is found in configDict, happy days.
+            if rKey in configDict:
+                logging.debug("Found mandatory config key '%s' in '%s'." % (rKey, configPath))
 
+             # Otherwise, log error and exit.
+            else:
+                logging.error("Could not find mandatory config key '%s' in '%s'." % (rKey, configPath))
+                sys.exit(1)
+
+        # Return config dict.
         logging.info('Loaded agent config successfully.')
-        return config._sections
-
-    except KeyError:
-        logging.error("Missing key in config (%s). Exiting." % configPath)
-
-    except ValueError:
-        logging.error("Missing value in config (%s). Exiting." % configPath)
+        return configDict
 
     except:
         logging.error("Error while parsing config (%s). Exiting." % configPath)
@@ -355,10 +363,10 @@ def main():
     config = loadConfig(args.config)
 
     # Then get our current WAN IP.
-    wanIp = getWanIp(config['Endpoints']['ipresolver'])
+    wanIp = getWanIp(config['endpoints']['ipResolver'])
 
     # Then check if that IP has changed since the last run. If not, exit.
-    updateRequired = checkIpLog(config['Logs']['iplog'], wanIp)
+    updateRequired = checkIpLog(config['logs']['ipLog'], wanIp)
 
     if updateRequired == True:
         logging.info('DNS update is required.')
@@ -372,18 +380,18 @@ def main():
         sys.exit(1)
 
     # If it has, get all existing DNS records from CloudFlare.
-    records = getRecords(config['Authentication']['apikey'],
-                         config['Authentication']['email'],
-                         config['Authentication']['zone'],
-                         config['Endpoints']['cfapiurl'])
-    
-    # Then for each of our records.
-    #    for name in config[]:
-    # Get the record ID.
-    #        recordId = getRecordId(name)
+    records = getRecords(config['authentication']['apiKey'],
+                         config['authentication']['email'],
+                         config['authentication']['zone'],
+                         config['endpoints']['apiUrl'])
 
-    # And update the it with our new IP.
-    #        updateRecord(name, recordId)
+    # Then for each of our records.
+    for name in config['records']:
+        # Get the record ID.
+        recordId = getRecordId(records, name)
+
+        # And update it with our new WAN IP.
+        updateRecord(wanIp, name, recordId, config['authentication']['apiKey'], config['authentication']['email'], config['authentication']['zone'], config['endpoints']['apiUrl'])
 
     #    except:
     #        logging.error('Something bad happened in main. Exiting.')
