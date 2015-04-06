@@ -19,10 +19,9 @@ import os
 PROG_NAME = 'CloudFlare DDNS Agent'
 
 # Logging config.
-logging.basicConfig(  # Define logging format.
+logging.basicConfig(
     format=PROG_NAME + ' : %(levelname)s : %(message)s',
-    # Set logging location.
-    filename='/var/log/cloudflare-ddns-agent.log',  # Set logging level.
+    filename='/var/log/cloudflare-ddns-agent.log',
     level=logging.DEBUG)
 
 
@@ -192,19 +191,19 @@ def getRecords(apiKey, email, zone, apiUrl):
 def getRecordId(records, name):
     logging.info("Searching for record ID of: %s" % name)
 
-    #try:
-    # Search records for the required name.
-    for record in records['response']['recs']['objs']:
-        # When found, return its ID.
-        if record['display_name'] == name:
-            logging.info("Obtained record ID: %s" % record['rec_id'])
-            return record['rec_id']
+    try:
+        # Search records for the required name.
+        for record in records['response']['recs']['objs']:
+            # When found, return its ID.
+            if record['display_name'] == name:
+                logging.info("Obtained record ID: %s" % record['rec_id'])
+                return record['rec_id']
 
-            # If we're here, we couldn't find the record name.
-    logging.error("Could not find a record matching: %s" % name)
+                # If we're here, we couldn't find the record name.
+        logging.error("Could not find a record matching: %s" % name)
 
-    #except:
-    #    logging.error('Error while searching for record. Exiting.')
+    except:
+        logging.error('Error while searching for record. Exiting.')
 
     sys.exit(1)
 
