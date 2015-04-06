@@ -6,7 +6,6 @@
 # Description:   Dynamic DNS agent for the CloudFlare API.
 
 # Global imports.
-#try:
 import sys
 import requests
 import json
@@ -15,10 +14,6 @@ import socket
 import yaml
 import argparse
 import os
-
-#except:
-#    print('Error while trying to import required libraries. Exiting.')
-#    sys.exit(1)
 
 # Global vars.
 PROG_NAME = 'CloudFlare DDNS Agent'
@@ -197,7 +192,7 @@ def getRecords(apiKey, email, zone, apiUrl):
 def getRecordId(records, name):
     logging.info("Searching for record ID of: %s" % name)
 
-#try:
+    #try:
     # Search records for the required name.
     for record in records['response']['recs']['objs']:
         # When found, return its ID.
@@ -208,8 +203,8 @@ def getRecordId(records, name):
             # If we're here, we couldn't find the record name.
     logging.error("Could not find a record matching: %s" % name)
 
-#except:
-#    logging.error('Error while searching for record. Exiting.')
+    #except:
+    #    logging.error('Error while searching for record. Exiting.')
 
     sys.exit(1)
 
@@ -317,18 +312,10 @@ def loadConfig(configPath):
         # Mandatory keys.
         requiredKeys = [
             'authentication',
-#            'email',
-#            'apiKey',
-#            'zone',
             'general',
-#            'updateZone',
             'records',
             'endpoints',
-#            'apiUrl',
-#            'ipResolver',
             'logs',
-#            'runLog',
-#            'ipLog',
         ]
 
         # For each required key.
@@ -336,11 +323,14 @@ def loadConfig(configPath):
 
             # If a match is found in configDict, happy days.
             if rKey in configDict:
-                logging.debug("Found mandatory config key '%s' in '%s'." % (rKey, configPath))
+                logging.debug("Found mandatory config key '%s' in '%s'." %
+                              (rKey, configPath))
 
-             # Otherwise, log error and exit.
+            # Otherwise, log error and exit.
             else:
-                logging.error("Could not find mandatory config key '%s' in '%s'." % (rKey, configPath))
+                logging.error(
+                    "Could not find mandatory config key '%s' in '%s'." %
+                    (rKey, configPath))
                 sys.exit(1)
 
         # Return config dict.
@@ -355,46 +345,49 @@ def loadConfig(configPath):
 
 # Description: Orchestrate the whole operation.
 def main():
-    #    try:
-    # Parse arguments from the command line.
-    args = parseArgs()
+    try:
+        # Parse arguments from the command line.
+        args = parseArgs()
 
-    # Then load in values from the config file.
-    config = loadConfig(args.config)
+        # Then load in values from the config file.
+        config = loadConfig(args.config)
 
-    # Then get our current WAN IP.
-    wanIp = getWanIp(config['endpoints']['ipResolver'])
+        # Then get our current WAN IP.
+        wanIp = getWanIp(config['endpoints']['ipResolver'])
 
-    # Then check if that IP has changed since the last run. If not, exit.
-    updateRequired = checkIpLog(config['logs']['ipLog'], wanIp)
+        # Then check if that IP has changed since the last run. If not, exit.
+        updateRequired = checkIpLog(config['logs']['ipLog'], wanIp)
 
-    if updateRequired == True:
-        logging.info('DNS update is required.')
+        if updateRequired == True:
+            logging.info('DNS update is required.')
 
-    elif updateRequired == False:
-        logging.info('DNS update is not required.')
-        sys.exit(0)
+        elif updateRequired == False:
+            logging.info('DNS update is not required.')
+            sys.exit(0)
 
-    else:
-        logging.error('Error while determining if DNS update is required.')
-        sys.exit(1)
+        else:
+            logging.error('Error while determining if DNS update is required.')
+            sys.exit(1)
 
-    # If it has, get all existing DNS records from CloudFlare.
-    records = getRecords(config['authentication']['apiKey'],
-                         config['authentication']['email'],
-                         config['authentication']['zone'],
-                         config['endpoints']['apiUrl'])
+        # If it has, get all existing DNS records from CloudFlare.
+        records = getRecords(config['authentication']['apiKey'],
+                             config['authentication']['email'],
+                             config['authentication']['zone'],
+                             config['endpoints']['apiUrl'])
 
-    # Then for each of our records.
-    for name in config['records']:
-        # Get the record ID.
-        recordId = getRecordId(records, name)
+        # Then for each of our records.
+        for name in config['records']:
+            # Get the record ID.
+            recordId = getRecordId(records, name)
 
-        # And update it with our new WAN IP.
-        updateRecord(wanIp, name, recordId, config['authentication']['apiKey'], config['authentication']['email'], config['authentication']['zone'], config['endpoints']['apiUrl'])
+            # And update it with our new WAN IP.
+            updateRecord(
+                wanIp, name, recordId, config['authentication']['apiKey'],
+                config['authentication']['email'],
+                config['authentication']['zone'], config['endpoints']['apiUrl'])
 
-    #    except:
-    #        logging.error('Something bad happened in main. Exiting.')
+    except:
+        logging.error('Something bad happened in main. Exiting.')
 
     return
 
