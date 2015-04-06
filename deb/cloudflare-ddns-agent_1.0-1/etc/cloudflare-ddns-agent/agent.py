@@ -15,12 +15,9 @@ import yaml
 import argparse
 import os
 
-# Global vars.
-PROG_NAME = 'CloudFlare DDNS Agent'
-
 # Logging config.
 logging.basicConfig(
-    format=PROG_NAME + ' : %(levelname)s : %(message)s',
+    format='CloudFlare DDNS Agent : %(levelname)s : %(message)s',
     filename='/var/log/cloudflare-ddns-agent.log',
     level=logging.DEBUG)
 
@@ -31,6 +28,7 @@ def parseArgs():
         # Create parser and a required arguments group.
         parser = argparse.ArgumentParser(
             description='Dynamic DNS agent for the CloudFlare API.')
+
         requiredArgs = parser.add_argument_group('required arguments')
 
         # Define required arguments.
@@ -291,6 +289,12 @@ def checkIpLog(ipLogPath, wanIp):
     except:
         logging.error("Error while processing IP log (%s)." % ipLogPath)
 
+    # If there's an error, remove the IP log as to not prevent the next run.
+    try:
+        os.remove(ipLogPath)
+    except:
+        logging.error("Error while trying to remove IP log (%s)." % ipLogPath)
+
     sys.exit(1)
 
 
@@ -309,13 +313,11 @@ def loadConfig(configPath):
         configFile.close()
 
         # Mandatory keys.
-        requiredKeys = [
-            'authentication',
-            'general',
-            'records',
-            'endpoints',
-            'logs',
-        ]
+        requiredKeys = ['authentication',
+                        'general',
+                        'records',
+                        'endpoints',
+                        'logs', ]
 
         # For each required key.
         for rKey in requiredKeys:
@@ -380,10 +382,11 @@ def main():
             recordId = getRecordId(records, name)
 
             # And update it with our new WAN IP.
-            updateRecord(
-                wanIp, name, recordId, config['authentication']['apiKey'],
-                config['authentication']['email'],
-                config['authentication']['zone'], config['endpoints']['apiUrl'])
+            updateRecord(wanIp, name, recordId,
+                         config['authentication']['apiKey'],
+                         config['authentication']['email'],
+                         config['authentication']['zone'],
+                         config['endpoints']['apiUrl'])
 
     except:
         logging.error('Something bad happened in main. Exiting.')
@@ -391,11 +394,11 @@ def main():
     return
 
 
-logging.info('DDNS update started...')
+logging.info('Agent run started...')
 
 # Orchestrate the whole operation.
 main()
 
 # Exit
-logging.info('DDNS update completed.')
+logging.info('Agent run completed.')
 sys.exit(0)
