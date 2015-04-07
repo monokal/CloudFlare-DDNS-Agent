@@ -346,50 +346,46 @@ def loadConfig(configPath):
 
 # Description: Orchestrate the whole operation.
 def main():
-    try:
-        # Parse arguments from the command line.
-        args = parseArgs()
+    # Parse arguments from the command line.
+    args = parseArgs()
 
-        # Then load in values from the config file.
-        config = loadConfig(args.config)
+    # Then load in values from the config file.
+    config = loadConfig(args.config)
 
-        # Then get our current WAN IP.
-        wanIp = getWanIp(config['endpoints']['ipResolver'])
+    # Then get our current WAN IP.
+    wanIp = getWanIp(config['endpoints']['ipResolver'])
 
-        # Then check if that IP has changed since the last run. If not, exit.
-        updateRequired = checkIpLog(config['logs']['ipLog'], wanIp)
+    # Then check if that IP has changed since the last run. If not, exit.
+    updateRequired = checkIpLog(config['logs']['ipLog'], wanIp)
 
-        if updateRequired == True:
-            logging.info('DNS update is required.')
+    if updateRequired == True:
+        logging.info('DNS update is required.')
 
-        elif updateRequired == False:
-            logging.info('DNS update is not required.')
-            sys.exit(0)
+    elif updateRequired == False:
+        logging.info('DNS update is not required.')
+        sys.exit(0)
 
-        else:
-            logging.error('Error while determining if DNS update is required.')
-            sys.exit(1)
+    else:
+        logging.error('Error while determining if DNS update is required.')
+        sys.exit(1)
 
-        # If it has, get all existing DNS records from CloudFlare.
-        records = getRecords(config['authentication']['apiKey'],
-                             config['authentication']['email'],
-                             config['authentication']['zone'],
-                             config['endpoints']['apiUrl'])
-
-        # Then for each of our records.
-        for name in config['records']:
-            # Get the record ID.
-            recordId = getRecordId(records, name)
-
-            # And update it with our new WAN IP.
-            updateRecord(wanIp, name, recordId,
-                         config['authentication']['apiKey'],
+    # If it has, get all existing DNS records from CloudFlare.
+    records = getRecords(config['authentication']['apiKey'],
                          config['authentication']['email'],
                          config['authentication']['zone'],
                          config['endpoints']['apiUrl'])
 
-    except:
-        logging.error('Something bad happened in main. Exiting.')
+    # Then for each of our records.
+    for name in config['records']:
+        # Get the record ID.
+        recordId = getRecordId(records, name)
+
+        # And update it with our new WAN IP.
+        updateRecord(wanIp, name, recordId,
+                     config['authentication']['apiKey'],
+                     config['authentication']['email'],
+                     config['authentication']['zone'],
+                     config['endpoints']['apiUrl'])
 
     return
 
