@@ -38,7 +38,7 @@ tail -f /var/log/syslog
 ```
 
 ## To do
-- Add the "-i / --interface" flag. This will override the default behaviour of getting the WAN IP and instead get the IP address of the given interface (e.g. eth0). Useful for internal use.
+- Add the "-i / --interface <interface_name>" command-line argument. This will override the default behaviour of getting the WAN IP and instead get the IP address of the given interface (e.g. eth0). Useful for internal use.
 
 ## Contribute
 As always, I welcome any contributions. Just open a **Pull Request**.
