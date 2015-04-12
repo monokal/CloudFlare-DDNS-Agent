@@ -36,6 +36,11 @@ def parseArgs():
                                   help='Path to the config file.',
                                   required=True)
 
+        # Define optional arguments.
+        parser.add_argument(
+            '-i', '--interface',
+            help='Interface to obtain the IP address from if not WAN.')
+
         # Parse and return the arguments.
         args = parser.parse_args()
         return args
@@ -352,11 +357,16 @@ def main():
     # Then load in values from the config file.
     config = loadConfig(args.config)
 
-    # Then get our current WAN IP.
-    wanIp = getWanIp(config['endpoints']['ipResolver'])
+    # If [-i/--interface] argument was passed, get the IP of that interface.
+    if args.interface != empty:
+        getInterfaceIp(args.interface)
+
+    # Otherwise, get the WAN IP.
+    else:
+        ipAddr = getWanIp(config['endpoints']['ipResolver'])
 
     # Then check if that IP has changed since the last run. If not, exit.
-    updateRequired = checkIpLog(config['logs']['ipLog'], wanIp)
+    updateRequired = checkIpLog(config['logs']['ipLog'], ipAddr)
 
     if updateRequired == True:
         logging.info('DNS update is required.')
@@ -381,11 +391,10 @@ def main():
         recordId = getRecordId(records, name)
 
         # And update it with our new WAN IP.
-        updateRecord(wanIp, name, recordId,
-                     config['authentication']['apiKey'],
-                     config['authentication']['email'],
-                     config['authentication']['zone'],
-                     config['endpoints']['apiUrl'])
+        updateRecord(
+            ipAddr, name, recordId, config['authentication']['apiKey'],
+            config['authentication']['email'],
+            config['authentication']['zone'], config['endpoints']['apiUrl'])
 
     return
 

@@ -1,4 +1,4 @@
 #!/bin/bash
 echo 'Running yapf...'
-PYTHONPATH=/Users/Daniel/Projects/Other/yapf python /Users/Daniel/Projects/Other/yapf/yapf --verify -i agent.py
+PYTHONPATH=/home/dmiddleton/Projects/Other/yapf python /home/dmiddleton/Projects/Other/yapf/yapf --verify -i agent.py
 echo 'Done.'
