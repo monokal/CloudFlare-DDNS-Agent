@@ -210,7 +210,8 @@ def getRecordId(records, name):
 
 
 # Description: Update a given record with our new IP address.
-def updateRecord(ipAddr, name, recordId, apiKey, email, zone, apiUrl):
+def updateRecord(ipAddr, name, recordId, apiKey, email, zone, apiUrl, rType,
+                 ttl, mode):
     ddnsLog.info("Updating '%s' to point at '%s'..." % (name, ipAddr))
 
     # Construct payload.
@@ -219,12 +220,12 @@ def updateRecord(ipAddr, name, recordId, apiKey, email, zone, apiUrl):
         'tkn': apiKey,
         'email': email,
         'z': zone,
-        'type': 'A',
+        'type': rType,
         'id': recordId,
         'name': name,
         'content': ipAddr,
-        'ttl': 1,
-        'service_mode': 1,
+        'ttl': ttl,
+        'service_mode': mode,
     }
 
     try:
@@ -407,7 +408,9 @@ def main():
         updateRecord(
             ipAddr, name, recordId, config['authentication']['apiKey'],
             config['authentication']['email'],
-            config['authentication']['zone'], config['endpoints']['apiUrl'])
+            config['authentication']['zone'], config['endpoints']['apiUrl'],
+            config['records'][name]['type'], config['records'][name]['ttl'],
+            config['records'][name]['mode'])
 
     return
 

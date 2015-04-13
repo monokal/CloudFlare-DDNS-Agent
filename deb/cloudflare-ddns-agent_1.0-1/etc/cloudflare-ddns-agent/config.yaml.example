@@ -9,21 +9,19 @@
 # Settings used to authenticate in to the CloudFlare API.
 authentication:
     # The Email address used to login to CloudFlare.
-    email  : email@address.com
+    email  : email@address.tld
     # Your CloudFlare API key which can be found at https://www.cloudflare.com/my-account.html
     apiKey : your-api-key
     # The Zone (website) name.
-    zone   : your-zone.com
+    zone   : your-zone.tld
 
 # General settings.
 general:
     # Can be set to an interface name (e.g. "eth0") for internal use or "WAN" for internet use
     # and determines which of those IP addresses is synced with CloudFlare.
-    interface  : WAN
-    # Update the main zone A record as well as the below records.
-    updateZone : yes
+    interface : WAN
 
-# Records to sync with your WAN IP. Add more as required.
+# Records to sync with your IP address. Add more as required.
 records:
     www:
         # Record type.
@@ -31,6 +29,14 @@ records:
         # Time To Live. 1 is automatic, otherwise value must in between 120 and 86400 seconds.
         ttl  : 120
         # Service Mode. 1 is orange cloud (via CloudFlare Proxy) and 0 is grey cloud (direct).
+        mode : 1
+    
+    # This is the main zone A record. You can comment this out if you don't
+    # want the main zone record itself to be updated, otherwise please change
+    # the placeholder below to your actual zone.
+    your-zone.tld:
+        type : A
+        ttl  : 120
         mode : 1
 
 #    anotherRecord:
