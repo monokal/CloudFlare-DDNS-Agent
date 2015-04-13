@@ -8,20 +8,30 @@
 
 # Settings used to authenticate in to the CloudFlare API.
 authentication:
-    email  : email@address.com # The Email address used to login to CloudFlare.
-    apiKey : your-api-key      # Your CloudFlare API key which can be found at https://www.cloudflare.com/my-account.html
-    zone   : your-zone.com     # The Zone (website) name.
+    # The Email address used to login to CloudFlare.
+    email  : email@address.com
+    # Your CloudFlare API key which can be found at https://www.cloudflare.com/my-account.html
+    apiKey : your-api-key
+    # The Zone (website) name.
+    zone   : your-zone.com
 
-# Other general settings.
+# General settings.
 general:
-    updateZone : yes # Update the main zone A record as well as the below records.
+    # Can be set to an interface name (e.g. "eth0") for internal use or "WAN" for internet use
+    # and determines which of those IP addresses is synced with CloudFlare.
+    interface  : WAN
+    # Update the main zone A record as well as the below records.
+    updateZone : yes
 
 # Records to sync with your WAN IP. Add more as required.
 records:
     www:
-        type : A   # Record type.
-        ttl  : 120 # Time To Live. 1 is automatic, otherwise value must in between 120 and 86400 seconds.
-        mode : 1   # Service Mode. 1 is orange cloud (via CloudFlare Proxy) and 0 is grey cloud (direct).
+        # Record type.
+        type : A
+        # Time To Live. 1 is automatic, otherwise value must in between 120 and 86400 seconds.
+        ttl  : 120
+        # Service Mode. 1 is orange cloud (via CloudFlare Proxy) and 0 is grey cloud (direct).
+        mode : 1
 
 #    anotherRecord:
 #        type : A
@@ -35,10 +45,14 @@ records:
 
 # Endpoint URLs.
 endpoints:
-    apiUrl   : https://www.cloudflare.com/api_json.html # CloudFlare API endpoint URL.
-    ipResolver : http://icanhazip.com                   # IP resolver service endpoint URL.
+    # CloudFlare API endpoint URL.
+    apiUrl     : https://www.cloudflare.com/api_json.html
+    # IP resolver service endpoint URL.
+    ipResolver : http://icanhazip.com
 
 # Log locations.
 logs:
-    runLog : /var/log/cloudflare-ddns-agent.log # The agent runtime log.
-    ipLog  : /tmp/cf_ddns_iplog.txt             # The IP log used by the agent to prevent unnecessary record updates.
+    # The agent runtime log.
+    runLog : /var/log/cloudflare-ddns-agent.log
+    # The IP log used by the agent to prevent unnecessary record updates.
+    ipLog  : /tmp/cf_ddns_iplog.txt

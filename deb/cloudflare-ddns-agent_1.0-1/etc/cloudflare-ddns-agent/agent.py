@@ -38,12 +38,6 @@ def parseArgs():
                                   help='Path to the config file.',
                                   required=True)
 
-        # Define optional arguments.
-        parser.add_argument(
-            '-i', '--interface',
-            help='Interface to obtain the IP address from if not WAN.',
-            default='UNSET')
-
         # Parse and return the arguments.
         args = parser.parse_args()
         return args
@@ -214,9 +208,9 @@ def getRecordId(records, name):
     sys.exit(1)
 
 
-# Description: Update a given record with new WAN IP.
-def updateRecord(wanIp, name, recordId, apiKey, email, zone, apiUrl):
-    logging.info("Updating '%s' to point at '%s'..." % (name, wanIp))
+# Description: Update a given record with our new IP address.
+def updateRecord(ipAddr, name, recordId, apiKey, email, zone, apiUrl):
+    logging.info("Updating '%s' to point at '%s'..." % (name, ipAddr))
 
     # Construct payload.
     payload = {
@@ -227,7 +221,7 @@ def updateRecord(wanIp, name, recordId, apiKey, email, zone, apiUrl):
         'type': 'A',
         'id': recordId,
         'name': name,
-        'content': wanIp,
+        'content': ipAddr,
         'ttl': 1,
         'service_mode': 1,
     }
@@ -250,12 +244,12 @@ def updateRecord(wanIp, name, recordId, apiKey, email, zone, apiUrl):
 
 
 # Description: Compare the logged IP with the current IP to determine if a DNS update is required.
-def checkIpLog(ipLogPath, wanIp):
+def checkIpLog(ipLogPath, ipAddr):
     try:
         # If the IP log exists.
         if os.path.isfile(ipLogPath):
             logging.debug(
-                'IP log exists. Comparing logged IP with current WAN IP.')
+                'IP log exists. Comparing logged IP with current IP address.')
 
             # Read in the logged IP.
             with open(ipLogPath, "r") as ipLog:
@@ -264,27 +258,27 @@ def checkIpLog(ipLogPath, wanIp):
             # Throw an exception if the logged IP is invalid/corrupt.
             socket.inet_aton(loggedIp)
 
-            # If the current WAN IP matches the logged IP, nothing more to do.
-            if wanIp == loggedIp:
-                logging.info("Current IP matches logged IP (%s)." % wanIp)
+            # If the current IP address matches the logged IP, nothing more to do.
+            if ipAddr == loggedIp:
+                logging.info("Current IP matches logged IP (%s)." % ipAddr)
                 return False
 
-            # Otherwise, write the current WAN IP to the IP log and continue.
+            # Otherwise, write the current IP address to the IP log and continue.
             else:
                 logging.info("Current IP (%s) does not match logged IP (%s)." %
-                             (wanIp, loggedIp))
+                             (ipAddr, loggedIp))
 
                 with open(ipLogPath, "w") as ipLog:
-                    ipLog.write("%s" % wanIp)
+                    ipLog.write("%s" % ipAddr)
 
                 return True
 
-        # Otherwise, create the file, log the current WAN IP and continue.
+        # Otherwise, create the file, log the current IP address and continue.
         else:
             logging.info(
                 'IP log does not exist (first run or system rebooted). DNS update will run.')
             with open(ipLogPath, "w") as ipLog:
-                ipLog.write("%s" % wanIp)
+                ipLog.write("%s" % ipAddr)
 
             return True
 
@@ -376,15 +370,15 @@ def main():
     # Then load in values from the config file.
     config = loadConfig(args.config)
 
-    # If [-i/--interface] argument was passed, get the IP of that interface.
-    if args.interface == 'UNSET':
-        logging.info('Interface argument was not passed. Defaulting to WAN.')
+    # If interface is set to WAN in config.yaml get WAN IP.
+    if config['general']['interface'] == 'WAN':
+        logging.info('Interface config is set to WAN.')
         ipAddr = getWanIp(config['endpoints']['ipResolver'])
 
-    # Otherwise, get the WAN IP.
+    # Otherwise, get IP of the given local interface.
     else:
-        logging.info('Interface argument was passed.')
-        ipAddr = getInterfaceIp(args.interface)
+        logging.info('Interface config set to local interface.')
+        ipAddr = getInterfaceIp(config['general']['interface'])
 
     # Then check if that IP has changed since the last run. If not, exit.
     updateRequired = checkIpLog(config['logs']['ipLog'], ipAddr)
@@ -406,12 +400,12 @@ def main():
                          config['authentication']['zone'],
                          config['endpoints']['apiUrl'])
 
-    # Then for each of our records.
+    # Then for each record defined in config.yaml
     for name in config['records']:
         # Get the record ID.
         recordId = getRecordId(records, name)
 
-        # And update it with our new WAN IP.
+        # And update it with our new IP address.
         updateRecord(
             ipAddr, name, recordId, config['authentication']['apiKey'],
             config['authentication']['email'],
