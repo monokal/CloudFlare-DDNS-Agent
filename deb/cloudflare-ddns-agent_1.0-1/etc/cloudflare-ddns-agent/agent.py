@@ -14,6 +14,8 @@ import socket
 import yaml
 import argparse
 import os
+from netifaces import AF_INET, AF_INET6, AF_LINK, AF_PACKET, AF_BRIDGE
+import netifaces
 
 # Logging config.
 logging.basicConfig(
@@ -39,7 +41,8 @@ def parseArgs():
         # Define optional arguments.
         parser.add_argument(
             '-i', '--interface',
-            help='Interface to obtain the IP address from if not WAN.')
+            help='Interface to obtain the IP address from if not WAN.',
+            default='UNSET')
 
         # Parse and return the arguments.
         args = parser.parse_args()
@@ -349,6 +352,22 @@ def loadConfig(configPath):
     sys.exit(1)
 
 
+# Description: Return the IP address of the given network interface.
+def getInterfaceIp(interface):
+    try:
+        logging.info("Obtaining IP address of '%s'..." % interface)
+        ipAddr = netifaces.ifaddresses(interface)[AF_INET][0]['addr']
+        logging.info("IP address of '%s' is '%s'." % (interface, ipAddr))
+
+        return ipAddr
+
+    except:
+        logging.error(
+            "Error while obtaining IP address of '%s'. Exiting." % interface)
+
+    sys.exit(1)
+
+
 # Description: Orchestrate the whole operation.
 def main():
     # Parse arguments from the command line.
@@ -358,12 +377,14 @@ def main():
     config = loadConfig(args.config)
 
     # If [-i/--interface] argument was passed, get the IP of that interface.
-    if args.interface != empty:
-        getInterfaceIp(args.interface)
+    if args.interface == 'UNSET':
+        logging.info('Interface argument was not passed. Defaulting to WAN.')
+        ipAddr = getWanIp(config['endpoints']['ipResolver'])
 
     # Otherwise, get the WAN IP.
     else:
-        ipAddr = getWanIp(config['endpoints']['ipResolver'])
+        logging.info('Interface argument was passed.')
+        ipAddr = getInterfaceIp(args.interface)
 
     # Then check if that IP has changed since the last run. If not, exit.
     updateRequired = checkIpLog(config['logs']['ipLog'], ipAddr)
