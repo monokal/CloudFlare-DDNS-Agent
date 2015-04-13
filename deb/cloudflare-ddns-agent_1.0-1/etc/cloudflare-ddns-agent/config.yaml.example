@@ -52,7 +52,5 @@ endpoints:
 
 # Log locations.
 logs:
-    # The agent runtime log.
-    runLog : /var/log/cloudflare-ddns-agent.log
     # The IP log used by the agent to prevent unnecessary record updates.
     ipLog  : /tmp/cf_ddns_iplog.txt

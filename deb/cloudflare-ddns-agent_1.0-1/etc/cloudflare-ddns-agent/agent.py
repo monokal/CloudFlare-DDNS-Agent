@@ -10,6 +10,7 @@ import sys
 import requests
 import json
 import logging
+import logging.handlers
 import socket
 import yaml
 import argparse
@@ -18,10 +19,10 @@ from netifaces import AF_INET, AF_INET6, AF_LINK, AF_PACKET, AF_BRIDGE
 import netifaces
 
 # Logging config.
-logging.basicConfig(
-    format='CloudFlare DDNS Agent : %(levelname)s : %(message)s',
-    filename='/var/log/cloudflare-ddns-agent.log',
-    level=logging.DEBUG)
+ddnsLog = logging.getLogger('ddnsLog')
+ddnsLog.setLevel(logging.DEBUG)
+handler = logging.handlers.SysLogHandler(address='/dev/log')
+ddnsLog.addHandler(handler)
 
 
 # Description: Parse arguments from the command-line.
@@ -43,7 +44,7 @@ def parseArgs():
         return args
 
     except:
-        logging.error('Error parsing command-line arguments. Exiting.')
+        ddnsLog.error('Error parsing command-line arguments. Exiting.')
 
     sys.exit(1)
 
@@ -53,34 +54,34 @@ def checkHttpResponse(code):
     try:
         # If HTTP status is OK then return immediately.
         if code == 200:
-            logging.debug('Server returned: 200 - OK.')
+            ddnsLog.debug('Server returned: 200 - OK.')
             return
         # Otherwise, log appropriate error and exit.
         elif code == 400:
-            logging.error('Server returned: 400 - Bad Request. Exiting.')
+            ddnsLog.error('Server returned: 400 - Bad Request. Exiting.')
         elif code == 401:
-            logging.error('Server returned: 401 - Unauthorised. Exiting.')
+            ddnsLog.error('Server returned: 401 - Unauthorised. Exiting.')
         elif code == 403:
-            logging.error('Server returned: 403 - Forbidden. Exiting.')
+            ddnsLog.error('Server returned: 403 - Forbidden. Exiting.')
         elif code == 404:
-            logging.error('Server returned: 404 - Not Found. Exiting.')
+            ddnsLog.error('Server returned: 404 - Not Found. Exiting.')
         elif code == 410:
-            logging.error('Server returned: 410 - Gone. Exiting.')
+            ddnsLog.error('Server returned: 410 - Gone. Exiting.')
         elif code == 500:
-            logging.error(
+            ddnsLog.error(
                 'Server returned: 500 - Internal Server Error. Exiting.')
         elif code == 501:
-            logging.error('Server returned: 501 - Not Implemented. Exiting.')
+            ddnsLog.error('Server returned: 501 - Not Implemented. Exiting.')
         elif code == 503:
-            logging.error(
+            ddnsLog.error(
                 'Server returned: 503 - Service Unavailable. Exiting.')
         elif code == 550:
-            logging.error('Server returned: 550 - Permission Denied. Exiting.')
+            ddnsLog.error('Server returned: 550 - Permission Denied. Exiting.')
         else:
-            logging.error("%i - Unrecognised HTTP return code. Exiting." % code)
+            ddnsLog.error("%i - Unrecognised HTTP return code. Exiting." % code)
 
     except:
-        logging.error('Error parsing HTTP return code. Exiting.')
+        ddnsLog.error('Error parsing HTTP return code. Exiting.')
 
     sys.exit(1)
 
@@ -95,32 +96,32 @@ def checkApiResponse(response):
         responseJson = json.loads(response.text)
 
     except:
-        logging.error('Error parsing HTTP response body to JSON. Exiting.')
+        ddnsLog.error('Error parsing HTTP response body to JSON. Exiting.')
         sys.exit(1)
 
     try:
         # If result is success, return immediately.
         if responseJson["result"] == 'success':
-            logging.info('API result: Success.')
+            ddnsLog.info('API result: Success.')
             return
 
         # Otherwise, log the error and exit.
         elif responseJson["result"] == 'error':
-            logging.error("CloudFlare API: %s - %s." %
+            ddnsLog.error("CloudFlare API: %s - %s." %
                           (responseJson['err_code'], responseJson['msg']))
 
         else:
-            logging.error('Unhandled response from CloudFlare API. Exiting.')
+            ddnsLog.error('Unhandled response from CloudFlare API. Exiting.')
 
     except:
-        logging.error('Error analysing the JSON response body. Exiting.')
+        ddnsLog.error('Error analysing the JSON response body. Exiting.')
 
     sys.exit(1)
 
 
 # Description: Returns WAN IP of the host.
 def getWanIp(ipResolver):
-    logging.info("Obtaining WAN IP from '%s'..." % ipResolver)
+    ddnsLog.info("Obtaining WAN IP from '%s'..." % ipResolver)
 
     try:
         # Attempt GET request to resolver.
@@ -130,7 +131,7 @@ def getWanIp(ipResolver):
         checkHttpResponse(response.status_code)
 
     except:
-        logging.error("Error obtaining WAN IP from '%s'." % ipResolver)
+        ddnsLog.error("Error obtaining WAN IP from '%s'." % ipResolver)
         sys.exit(1)
 
     try:
@@ -142,21 +143,21 @@ def getWanIp(ipResolver):
         socket.inet_aton(wanIp)
 
         # If we've made it this far we can happily return our WAN IP.
-        logging.info("WAN IP resolved as: %s" % wanIp)
+        ddnsLog.info("WAN IP resolved as: %s" % wanIp)
         return wanIp
 
     except socket.error:
-        logging.error("Invalid WAN IP obtained from '%s'." % ipResolver)
+        ddnsLog.error("Invalid WAN IP obtained from '%s'." % ipResolver)
 
     except:
-        logging.error("Error validating WAN IP from '%s'." % ipResolver)
+        ddnsLog.error("Error validating WAN IP from '%s'." % ipResolver)
 
     sys.exit(1)
 
 
 # Description: Get all of our existing DNS records from CloudFlare API.
 def getRecords(apiKey, email, zone, apiUrl):
-    logging.info('Obtaining existing DNS records from CloudFlare API...')
+    ddnsLog.info('Obtaining existing DNS records from CloudFlare API...')
 
     # Construct payload.
     payload = {'a': 'rec_load_all', 'tkn': apiKey, 'email': email, 'z': zone, }
@@ -169,48 +170,48 @@ def getRecords(apiKey, email, zone, apiUrl):
         checkApiResponse(response)
 
     except:
-        logging.error('Error obtaining DNS records from CloudFlare API.')
+        ddnsLog.error('Error obtaining DNS records from CloudFlare API.')
         sys.exit(1)
 
     try:
         recordsJson = json.loads(response.text)
         response.close()
 
-        logging.info("Obtained %i DNS records from CloudFlare API." %
+        ddnsLog.info("Obtained %i DNS records from CloudFlare API." %
                      recordsJson['response']['recs']['count'])
 
         return recordsJson
 
     except:
-        logging.error('Error parsing records to JSON. Exiting.')
+        ddnsLog.error('Error parsing records to JSON. Exiting.')
 
     sys.exit(1)
 
 
 # Description: Return ID of a given record name.
 def getRecordId(records, name):
-    logging.info("Searching for record ID of: %s" % name)
+    ddnsLog.info("Searching for record ID of: %s" % name)
 
     try:
         # Search records for the required name.
         for record in records['response']['recs']['objs']:
             # When found, return its ID.
             if record['display_name'] == name:
-                logging.info("Obtained record ID: %s" % record['rec_id'])
+                ddnsLog.info("Obtained record ID: %s" % record['rec_id'])
                 return record['rec_id']
 
                 # If we're here, we couldn't find the record name.
-        logging.error("Could not find a record matching: %s" % name)
+        ddnsLog.error("Could not find a record matching: %s" % name)
 
     except:
-        logging.error('Error while searching for record. Exiting.')
+        ddnsLog.error('Error while searching for record. Exiting.')
 
     sys.exit(1)
 
 
 # Description: Update a given record with our new IP address.
 def updateRecord(ipAddr, name, recordId, apiKey, email, zone, apiUrl):
-    logging.info("Updating '%s' to point at '%s'..." % (name, ipAddr))
+    ddnsLog.info("Updating '%s' to point at '%s'..." % (name, ipAddr))
 
     # Construct payload.
     payload = {
@@ -234,11 +235,11 @@ def updateRecord(ipAddr, name, recordId, apiKey, email, zone, apiUrl):
         checkApiResponse(response)
 
         # Otherwise, log success and return.
-        logging.info('Record updated successfully.')
+        ddnsLog.info('Record updated successfully.')
         return
 
     except:
-        logging.error('Error updating record via CloudFlare API.')
+        ddnsLog.error('Error updating record via CloudFlare API.')
 
     sys.exit(1)
 
@@ -248,7 +249,7 @@ def checkIpLog(ipLogPath, ipAddr):
     try:
         # If the IP log exists.
         if os.path.isfile(ipLogPath):
-            logging.debug(
+            ddnsLog.debug(
                 'IP log exists. Comparing logged IP with current IP address.')
 
             # Read in the logged IP.
@@ -260,12 +261,12 @@ def checkIpLog(ipLogPath, ipAddr):
 
             # If the current IP address matches the logged IP, nothing more to do.
             if ipAddr == loggedIp:
-                logging.info("Current IP matches logged IP (%s)." % ipAddr)
+                ddnsLog.info("Current IP matches logged IP (%s)." % ipAddr)
                 return False
 
             # Otherwise, write the current IP address to the IP log and continue.
             else:
-                logging.info("Current IP (%s) does not match logged IP (%s)." %
+                ddnsLog.info("Current IP (%s) does not match logged IP (%s)." %
                              (ipAddr, loggedIp))
 
                 with open(ipLogPath, "w") as ipLog:
@@ -275,7 +276,7 @@ def checkIpLog(ipLogPath, ipAddr):
 
         # Otherwise, create the file, log the current IP address and continue.
         else:
-            logging.info(
+            ddnsLog.info(
                 'IP log does not exist (first run or system rebooted). DNS update will run.')
             with open(ipLogPath, "w") as ipLog:
                 ipLog.write("%s" % ipAddr)
@@ -283,26 +284,26 @@ def checkIpLog(ipLogPath, ipAddr):
             return True
 
     except IOError:
-        logging.error("Error trying to read or create '%s'." % ipLogPath)
+        ddnsLog.error("Error trying to read or create '%s'." % ipLogPath)
 
     except socket.error:
-        logging.error("Invalid logged IP obtained from '%s'." % ipLogPath)
+        ddnsLog.error("Invalid logged IP obtained from '%s'." % ipLogPath)
 
     except:
-        logging.error("Error while processing IP log (%s)." % ipLogPath)
+        ddnsLog.error("Error while processing IP log (%s)." % ipLogPath)
 
     # If there's an error, remove the IP log as to not prevent the next run.
     try:
         os.remove(ipLogPath)
     except:
-        logging.error("Error while trying to remove IP log (%s)." % ipLogPath)
+        ddnsLog.error("Error while trying to remove IP log (%s)." % ipLogPath)
 
     sys.exit(1)
 
 
 # Description: Load values from config file.
 def loadConfig(configPath):
-    logging.info("Loading agent config from '%s'..." % configPath)
+    ddnsLog.info("Loading agent config from '%s'..." % configPath)
 
     try:
         # Open config.yaml
@@ -315,33 +316,30 @@ def loadConfig(configPath):
         configFile.close()
 
         # Mandatory keys.
-        requiredKeys = ['authentication',
-                        'general',
-                        'records',
-                        'endpoints',
-                        'logs', ]
+        requiredKeys = ['authentication', 'general', 'records', 'endpoints',
+                        'logs']
 
         # For each required key.
         for rKey in requiredKeys:
 
             # If a match is found in configDict, happy days.
             if rKey in configDict:
-                logging.debug("Found mandatory config key '%s' in '%s'." %
+                ddnsLog.debug("Found mandatory config key '%s' in '%s'." %
                               (rKey, configPath))
 
             # Otherwise, log error and exit.
             else:
-                logging.error(
+                ddnsLog.error(
                     "Could not find mandatory config key '%s' in '%s'." %
                     (rKey, configPath))
                 sys.exit(1)
 
         # Return config dict.
-        logging.info('Loaded agent config successfully.')
+        ddnsLog.info('Loaded agent config successfully.')
         return configDict
 
     except:
-        logging.error("Error while parsing config (%s). Exiting." % configPath)
+        ddnsLog.error("Error while parsing config (%s). Exiting." % configPath)
 
     sys.exit(1)
 
@@ -349,14 +347,14 @@ def loadConfig(configPath):
 # Description: Return the IP address of the given network interface.
 def getInterfaceIp(interface):
     try:
-        logging.info("Obtaining IP address of '%s'..." % interface)
+        ddnsLog.info("Obtaining IP address of '%s'..." % interface)
         ipAddr = netifaces.ifaddresses(interface)[AF_INET][0]['addr']
-        logging.info("IP address of '%s' is '%s'." % (interface, ipAddr))
+        ddnsLog.info("IP address of '%s' is '%s'." % (interface, ipAddr))
 
         return ipAddr
 
     except:
-        logging.error(
+        ddnsLog.error(
             "Error while obtaining IP address of '%s'. Exiting." % interface)
 
     sys.exit(1)
@@ -372,26 +370,26 @@ def main():
 
     # If interface is set to WAN in config.yaml get WAN IP.
     if config['general']['interface'] == 'WAN':
-        logging.info('Interface config is set to WAN.')
+        ddnsLog.info('Interface config is set to WAN.')
         ipAddr = getWanIp(config['endpoints']['ipResolver'])
 
     # Otherwise, get IP of the given local interface.
     else:
-        logging.info('Interface config set to local interface.')
+        ddnsLog.info('Interface config set to local interface.')
         ipAddr = getInterfaceIp(config['general']['interface'])
 
     # Then check if that IP has changed since the last run. If not, exit.
     updateRequired = checkIpLog(config['logs']['ipLog'], ipAddr)
 
     if updateRequired == True:
-        logging.info('DNS update is required.')
+        ddnsLog.info('DNS update is required.')
 
     elif updateRequired == False:
-        logging.info('DNS update is not required.')
+        ddnsLog.info('DNS update is not required.')
         sys.exit(0)
 
     else:
-        logging.error('Error while determining if DNS update is required.')
+        ddnsLog.error('Error while determining if DNS update is required.')
         sys.exit(1)
 
     # If it has, get all existing DNS records from CloudFlare.
@@ -414,11 +412,11 @@ def main():
     return
 
 
-logging.info('Agent run started...')
+ddnsLog.info('Agent run started...')
 
 # Orchestrate the whole operation.
 main()
 
 # Exit
-logging.info('Agent run completed.')
+ddnsLog.info('Agent run completed.')
 sys.exit(0)
