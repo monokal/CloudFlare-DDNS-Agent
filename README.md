@@ -5,7 +5,7 @@ A dynamic DNS agent for the CloudFlare API. Handy for home projects, development
 ## Installation
 
 ##### Debian / Ubuntu
-Simply installing the DEB package (found in the `deb` folder of this repo) as per below will drop everything in to place and add a cron job to run every hour by default, though this can be tweaked in `/etc/cron.d/cloudflare-ddns-agent`. Also see "Configuration" below.
+Simply installing the DEB package (found in the `deb` directory of this repo) as per below will drop everything in to place and add a cron job to run every hour by default, though this can be tweaked in `/etc/cron.d/cloudflare-ddns-agent`. **See "Configuration" below**.
 ```bash
 sudo dpkg -i cloudflare-ddns-agent_<version>.deb
 ```
@@ -14,31 +14,32 @@ sudo dpkg -i cloudflare-ddns-agent_<version>.deb
 1. Drop `/etc/cloudflare-ddns-agent/agent.py` in place, found in the `deb/cloudflare-ddns-agent_<version>/etc/cloudflare-ddns-agent` directory of this repo.
 2. Drop in a crontab. The example below runs every hour:
 ```bash
-0 * * * * /etc/cloudflare-ddns-agent/agent.py --config /etc/cloudflare-ddns-agent/agent.conf
+0 * * * * /etc/cloudflare-ddns-agent/agent.py --config /etc/cloudflare-ddns-agent/config.yaml
 ```
-3. See "Configuration" below.
+3. **See "Configuration" below**.
 
 ## Configuration
-By default, an `agent.conf` file is expected to be found at `/etc/cloudflare-ddns-agent/agent.conf`, although you can tweak the `--config` argument in the cron job seen above. You should copy the example config file found at `/etc/cloudflare-ddns-agent/agent.conf.example` as per below, and edit it as commented in the file.
+If you installed using the DEB package, the config file can be found at `/etc/cloudflare-ddns-agent/config.yaml`, please edit it as commented in the file.
+```bash
+vim /etc/cloudflare-ddns-agent/agent.conf
+```
+
+If you installed manually, you should copy the example config file found at `/etc/cloudflare-ddns-agent/config.yaml.example` to `/etc/cloudflare-ddns-agent/config.yaml` as shown below and edit it as commented in the file.
 
 ```bash
-cp /etc/cloudflare-ddns-agent/agent.conf.example /etc/cloudflare-ddns-agent/agent.conf
+cp /etc/cloudflare-ddns-agent/config.yaml.example /etc/cloudflare-ddns-agent/config.yaml
 ```
 ```bash
 vim /etc/cloudflare-ddns-agent/agent.conf
 ```
 
-## Usage
-text
+Should you wish to move the config file, you can tweak the `--config` argument in the cron job seen above.
 
 ## Logs
 By default, the script will log to `syslog`. In Debian/Ubuntu-based distributions for example, you can follow the logs as per below.
 ```bash
 tail -f /var/log/syslog
 ```
-
-## To do
-- Add the "-i / --interface <interface_name>" command-line argument. This will override the default behaviour of getting the WAN IP and instead get the IP address of the given interface (e.g. eth0). Useful for internal use.
 
 ## Contribute
 As always, I welcome any contributions. Just open a **Pull Request**.
