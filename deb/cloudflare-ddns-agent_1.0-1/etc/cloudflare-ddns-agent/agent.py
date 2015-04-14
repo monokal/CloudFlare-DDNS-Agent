@@ -13,6 +13,7 @@ import logging
 import logging.handlers
 import socket
 import yaml
+from argparse import RawDescriptionHelpFormatter
 import argparse
 import os
 from netifaces import AF_INET, AF_INET6, AF_LINK, AF_PACKET, AF_BRIDGE
@@ -27,16 +28,26 @@ ddnsLog.addHandler(handler)
 
 # Description: Parse arguments from the command-line.
 def parseArgs():
+
+    info = ("""
+-----------------------------------------------------------------
+                CloudFlare DDNS Agent - Usage
+-----------------------------------------------------------------
+Author: Daniel Middleton <me@daniel-middleton.com>
+Source: https://github.com/daniel-middleton/CloudFlare-DDNS-Agent
+Description: Dynamic DNS agent for the CloudFlare API.""")
+
     try:
         # Create parser and a required arguments group.
         parser = argparse.ArgumentParser(
-            description='Dynamic DNS agent for the CloudFlare API.')
+            description="%s" % info,
+            formatter_class=RawDescriptionHelpFormatter)
 
         requiredArgs = parser.add_argument_group('required arguments')
 
         # Define required arguments.
         requiredArgs.add_argument('-c', '--config',
-                                  help='Path to the config file.',
+                                  help='path to the config file.',
                                   required=True)
 
         # Parse and return the arguments.
@@ -404,7 +415,7 @@ def main():
         # Get the record ID.
         recordId = getRecordId(records, name)
 
-        # And update it with our new IP address.
+        # And update it at CloudFlare with our new IP address.
         updateRecord(
             ipAddr, name, recordId, config['authentication']['apiKey'],
             config['authentication']['email'],
@@ -412,6 +423,7 @@ def main():
             config['records'][name]['type'], config['records'][name]['ttl'],
             config['records'][name]['mode'])
 
+    # That's all folks!
     return
 
 
