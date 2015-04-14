@@ -16,7 +16,7 @@ sudo dpkg -i cloudflare-ddns-agent_<version>.deb
 ```bash
 0 * * * * /etc/cloudflare-ddns-agent/agent.py --config /etc/cloudflare-ddns-agent/config.yaml
 ```
-3. **See "Configuration" below**.
+3 - **See "Configuration" below**.
 
 ## Configuration
 If you installed using the DEB package, the config file can be found at `/etc/cloudflare-ddns-agent/config.yaml`, please edit it as commented in the file.
