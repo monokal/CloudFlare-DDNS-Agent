@@ -5,7 +5,7 @@ A dynamic DNS agent for the CloudFlare API. Handy for home projects, development
 ## Installation
 
 ##### Debian / Ubuntu
-Simply installing the DEB package (found in the `deb` directory of this repo) as per below will drop everything in to place and add a cron job to run every hour by default, though this can be tweaked in `/etc/cron.d/cloudflare-ddns-agent`. **See "Configuration" below**.
+Simply installing the DEB package (found in the `deb` directory of this repo) as per below will drop everything in to place and add a cron job to run every hour by default, though this can be tweaked in `/etc/cron.d/cloudflare-ddns-agent`.
 ```bash
 sudo dpkg -i cloudflare-ddns-agent_<version>.deb
 ```
@@ -16,7 +16,6 @@ sudo dpkg -i cloudflare-ddns-agent_<version>.deb
 ```bash
 0 * * * * /etc/cloudflare-ddns-agent/agent.py --config /etc/cloudflare-ddns-agent/config.yaml
 ```
-**See "Configuration" below**.
 
 ## Configuration
 If you installed using the DEB package, the config file can be found at `/etc/cloudflare-ddns-agent/config.yaml`, please edit it as commented in the file.
