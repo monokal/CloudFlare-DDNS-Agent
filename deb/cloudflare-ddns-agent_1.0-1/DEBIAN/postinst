@@ -1,10 +1,22 @@
 #!/bin/bash
-echo "[postinst] Creating new crontab at '/etc/cron.d/cloudflare-ddns-agent'..."
+echo "[postinst] Copying config file from '/etc/cloudflare-ddns-agent/config.yaml.example' to '/etc/cloudflare-ddns-agent/config.yaml'..."
+cp /etc/cloudflare-ddns-agent/config.yaml.example /etc/cloudflare-ddns-agent/config.yaml
+if [ "$?" -ne "0" ]; then
+    echo "[postinst] Failed to copy 'config.yaml' in to place. Exiting."
+    exit 1
+fi
+echo '[postinst] OK.'
 
-echo "0 * * * * root /etc/cloudflare-ddns-agent/agent.py" > /etc/cron.d/cloudflare-ddns-agent
+echo "[postinst] Creating new crontab at '/etc/cron.d/cloudflare-ddns-agent'..."
+echo '0 * * * * /etc/cloudflare-ddns-agent/agent.py --config /etc/cloudflare-ddns-agent/config.yaml' > /etc/cron.d/cloudflare-ddns-agent
 if [ "$?" -ne "0" ]; then
     echo "[postinst] Could not create '/etc/cron.d/cloudflare-ddns-agent'. Exiting."
     exit 1
 fi
+echo '[postinst] OK.'
 
-echo "[postinst] Done."
+echo
+echo "[postinst] REMEMBER TO EDIT THE CONFIG FILE! ('/etc/cloudflare-ddns-agent/config.yaml')"
+echo
+
+echo '[postinst] Done.'

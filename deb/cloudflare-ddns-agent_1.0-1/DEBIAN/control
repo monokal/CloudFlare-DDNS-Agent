@@ -5,8 +5,4 @@ Priority: optional
 Architecture: all
 Depends: python
 Maintainer: Daniel Middleton <me@daniel-middleton.com>
-Description: CloudFlare DDNS Agent
- A dynamic DNS agent for the CloudFlare API.
- Handy for home projects or development environments
- where you want the benefits of CloudFlare but don't
- have a static IP.
+Description: DDNS agent for the CloudFlare API.
