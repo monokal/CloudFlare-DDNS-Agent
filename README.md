@@ -4,6 +4,13 @@ A dynamic DNS agent for the CloudFlare API. Handy for home projects, development
 
 ## Installation
 
+##### Prerequisites
+I plan on working these dependancies in to the DEB package, but for now you'll need:
+- Python (tested on 2.7.9)
+  - requests
+  - pyyaml
+  - netifaces (may need python-dev package)
+
 ##### Debian / Ubuntu
 Simply installing the DEB package (found in the `deb` directory of this repo) as per below will drop everything in to place and add a cron job to run every hour by default, though this can be tweaked in `/etc/cron.d/cloudflare-ddns-agent`.
 ```bash
